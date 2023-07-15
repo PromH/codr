@@ -72,12 +72,12 @@ enum SubCommand {
 enum GetSubCommand {
     ///
     DriveItems {
-        /// The path to the driveitem (e.g. `Documents/folder/my_file_or_folder`)
+        /// The system path to the driveitem (e.g. `Documents/folder/my_file_or_folder`)
         path: String,
     },
     ///
-    EmbededLinks {
-        /// The path to the driveitem (e.g. `Documents/folder/my_file_or_folder`)
+    SharingLinks {
+        /// The system path to the driveitem (e.g. `Documents/folder/my_file_or_folder`)
         path: String,
     },
 }
@@ -146,7 +146,7 @@ fn main() {
                 GetSubCommand::DriveItems { path } => {
                     println!("asdf");
                 },
-                GetSubCommand::EmbededLinks { path } => {
+                GetSubCommand::SharingLinks { path } => {
                     println!("1234");
                 },
             }

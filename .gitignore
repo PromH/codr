@@ -18,3 +18,6 @@ config.y*ml
 
 # Logs
 *.log
+
+# Examplem files
+example-*.json
