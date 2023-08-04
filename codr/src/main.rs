@@ -1,8 +1,21 @@
 use clap::{ Parser, Subcommand };
 use serde_derive::{Serialize, Deserialize};
 use std::env;
-use onedrive::{ GraphTokenObtainer, TokenObtainer };
+use std::process::ExitCode;
+use reqwest::blocking;
+use onedrive::{
+    GraphTokenObtainer,
+    TokenObtainer,
+    OneDriveClient,
+    HttpClient,
+    OneDriver,
+    Httper,
+    CreateLinkRequest,
+    SharingLinkType,
+    SharingLinkScope,
+};
 use std::time::SystemTime;
+use std::str::FromStr;
 
 use onedrive;
 
@@ -30,10 +43,13 @@ fn setup_logger(log_level: log::LevelFilter) -> Result<(), fern::InitError> {
     Ok(())
 }
 
-/// A CLI tool for interacting with OneDrive
 #[derive(Parser, Debug)]
 #[command(name = "codr")]
 #[command(author, version, about, long_about = None)] // Read from `Cargo.toml`
+/// A CLI tool for interacting with OneDrive
+/// but requires your own Microsoft OAuth2 Credentials (Application/Client ID and the Client Secret)
+/// that contain the appropriate permissions to work with.
+/// See here for instructions:  https://docs.microsoft.com/azure/active-directory/develop/quickstart-register-app
 struct Cli {
     #[command(subcommand)]
     /// The command to run
@@ -56,8 +72,8 @@ struct Cli {
     config_file: Option<String>,
 }
 
-/// Subcommands
 #[derive(Subcommand, Debug)]
+/// Subcommands
 enum SubCommand {
     /// Gets the requested object
     Get {
@@ -65,25 +81,48 @@ enum SubCommand {
         /// Object to request from
         object: GetSubCommand,
     },
+    /// Creates the requested object
+    Create {
+        #[command(subcommand)]
+        /// Object to request from
+        object: CreateSubCommand,
+    }
 }
 
+#[derive(Subcommand, Deserialize, Serialize, Debug)]
 /// `get` Subcommands
-#[derive(Subcommand, Debug)]
 enum GetSubCommand {
     ///
-    DriveItems {
+    DriveItem {
         /// The system path to the driveitem (e.g. `Documents/folder/my_file_or_folder`)
         path: String,
     },
+    ///
+    DriveItemChildren {
+        /// The system path to the driveitem that contains DriveItems as children (e.g. `Documents/folder/my_folder`)
+        path: String,
+    },
+}
+
+
+
+#[derive(Subcommand, Deserialize, Serialize, Debug)]
+/// `create` Subcommands
+enum CreateSubCommand {
     ///
     SharingLinks {
         /// The system path to the driveitem (e.g. `Documents/folder/my_file_or_folder`)
         path: String,
+        #[serde(rename = "type")]
+        /// The type of sharing link to create. Either view, edit, or embed.
+        the_type: String,
+        /// <Optional> The scope of link to create. Either anonymous or organization.
+        scope: Option<String>,
     },
 }
 
-/// Configuration file struct
 #[derive(Serialize, Deserialize)]
+/// Configuration file struct
 struct Config {
     msgraph_client_id: String,
     msgraph_client_secret: String,
@@ -138,19 +177,63 @@ fn main() {
         redirect_port: Some(8080),
     };
 
+    // Client
+    let access_token = token_obtainer.get_token().unwrap().access_token();
+    let http_client = HttpClient{
+        client: blocking::Client::new(),
+    };
+    let client = OneDriveClient{
+        access_token: access_token,
+        http_handler: Box::new(http_client),
+        drive_id: None,
+        group_id: None,
+        site_id: None,
+    };
+
     // Processing commands
     match args.command {
         // Get
         SubCommand::Get { object } => {
             match object {
-                GetSubCommand::DriveItems { path } => {
-                    println!("asdf");
+                GetSubCommand::DriveItem { path } => {
+                    let drive_item = client.get_drive_item(path.clone());
+                    match drive_item {
+                        Ok(res) => println!("{:#?}", res),
+                        Err(err) => panic!("Unable to get drive item from {} - {:?}", path.clone(), err),
+                    }
                 },
-                GetSubCommand::SharingLinks { path } => {
-                    println!("1234");
+                GetSubCommand::DriveItemChildren { path } => {
+                    let collection = client.get_drive_item_children(path.clone());
+                    match collection {
+                        Ok(res) => println!("{:#?}", res),
+                        Err(err) => panic!("Unable to get drive item from {} - {:?}", path.clone(), err),
+                    }
+                },
+            }
+        },
+        // Create
+        SubCommand::Create { object } => {
+            match object {
+                CreateSubCommand::SharingLinks { path, the_type, scope } => {
+                    let type_to_use = match SharingLinkType::from_str(the_type.as_str()) {
+                        Ok(res) => res,
+                        Err(_) => panic!("Invalid type provided for sharing links: {}", the_type),
+                    };
+                    let scope_to_use = match scope {
+                        Some(the_scope) => Some(match SharingLinkScope::from_str(the_scope.as_str()) {
+                            Ok(res) => res,
+                            Err(_) => panic!("Invalid scope provided for sharing links: {}", the_scope)
+                        }),
+                        None => None,
+                    };
+                    let link_request = CreateLinkRequest{
+                        the_type: type_to_use,
+                        scope:  scope_to_use,
+                    };
+                    let links = client.create_sharing_links(path, link_request);
+                    println!("{:#?}", links.unwrap());
                 },
             }
         },
     }
-    // let access_token = token_obtainer.get_token().unwrap().access_token();
 }
