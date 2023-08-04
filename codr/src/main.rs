@@ -1,7 +1,6 @@
 use clap::{ Parser, Subcommand };
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{ Serialize, Deserialize };
 use std::env;
-use std::process::ExitCode;
 use reqwest::blocking;
 use onedrive::{
     GraphTokenObtainer,
@@ -9,7 +8,6 @@ use onedrive::{
     OneDriveClient,
     HttpClient,
     OneDriver,
-    Httper,
     CreateLinkRequest,
     SharingLinkType,
     SharingLinkScope,
@@ -24,17 +22,20 @@ const DEFAULT_CONFIG_FILE_PATH: &str = "config.yaml";
 
 /// Sets up the logger for the application
 fn setup_logger(log_level: log::LevelFilter) -> Result<(), fern::InitError> {
-    fern::Dispatch::new()
+    fern::Dispatch
+        ::new()
         .format(|out, message, record| {
-            out.finish(format_args!(
-                "[{} {} {} {}:{}] {}",
-                humantime::format_rfc3339_seconds(SystemTime::now()),
-                record.level(),
-                record.target(),
-                record.file().unwrap_or("unknown"),
-                record.line().unwrap_or(0),
-                message
-            ))
+            out.finish(
+                format_args!(
+                    "[{} {} {} {}:{}] {}",
+                    humantime::format_rfc3339_seconds(SystemTime::now()),
+                    record.level(),
+                    record.target(),
+                    record.file().unwrap_or("unknown"),
+                    record.line().unwrap_or(0),
+                    message
+                )
+            )
         })
         .level(log_level)
         .chain(std::io::stdout())
@@ -58,13 +59,13 @@ struct Cli {
     /// <Optional> The log level of the application (defaults to `Info`)
     log_level: Option<log::LevelFilter>,
     #[arg(short = 'i', long, value_name = "MSGRAPH_CLIENT_ID")]
-    /// <Optional> The Microsoft Graph Application Client ID 
-    /// 
+    /// <Optional> The Microsoft Graph Application Client ID
+    ///
     /// (Will look at using the `MSGRAPH_CLIENT_ID` environment variable if empty)
     client_id: Option<String>,
     #[arg(short = 's', long, value_name = "MSGRAPH_CLIENT_SECRET")]
-    /// <Optional> The Microsoft Graph Application Client Secret 
-    /// 
+    /// <Optional> The Microsoft Graph Application Client Secret
+    ///
     /// (Will look at using the `MSGRAPH_CLIENT_SECRET` environment variable if empty)
     client_secret: Option<String>,
     #[arg(short = 'c', long, value_name = "CONFIG_FILE")]
@@ -86,7 +87,7 @@ enum SubCommand {
         #[command(subcommand)]
         /// Object to request from
         object: CreateSubCommand,
-    }
+    },
 }
 
 #[derive(Subcommand, Deserialize, Serialize, Debug)]
@@ -103,8 +104,6 @@ enum GetSubCommand {
         path: String,
     },
 }
-
-
 
 #[derive(Subcommand, Deserialize, Serialize, Debug)]
 /// `create` Subcommands
@@ -130,7 +129,9 @@ struct Config {
 
 /// `MyConfig` implements `Default`
 impl ::std::default::Default for Config {
-    fn default() -> Self { Self { msgraph_client_id: String::new(), msgraph_client_secret: String::new() } }
+    fn default() -> Self {
+        Self { msgraph_client_id: String::new(), msgraph_client_secret: String::new() }
+    }
 }
 
 fn main() {
@@ -139,7 +140,9 @@ fn main() {
     let log_level = args.log_level.unwrap_or(log::LevelFilter::Info);
     let mut client_id: String = args.client_id.unwrap_or_default();
     let mut client_secret: String = args.client_secret.unwrap_or_default();
-    let config_file_path: String = args.config_file.unwrap_or(String::from(DEFAULT_CONFIG_FILE_PATH));
+    let config_file_path: String = args.config_file.unwrap_or(
+        String::from(DEFAULT_CONFIG_FILE_PATH)
+    );
 
     // Loading configuration file
     let cfg: Config = confy::load_path(config_file_path).unwrap_or_default();
@@ -152,11 +155,13 @@ fn main() {
 
     // Using environment variables - if nothing found
     if client_id == String::new() {
-        client_id = env::var("MSGRAPH_CLIENT_ID")
+        client_id = env
+            ::var("MSGRAPH_CLIENT_ID")
             .expect("Missing the MSGRAPH_CLIENT_ID environment variable.");
     }
     if client_secret == String::new() {
-        client_secret = env::var("MSGRAPH_CLIENT_SECRET")
+        client_secret = env
+            ::var("MSGRAPH_CLIENT_SECRET")
             .expect("Missing the MSGRAPH_CLIENT_SECRET environment variable.");
     }
 
@@ -170,7 +175,10 @@ fn main() {
         access_scopes: vec![
             "https://graph.microsoft.com/Files.Read".to_string(),
             "https://graph.microsoft.com/User.Read".to_string(),
-            "https://graph.microsoft.com/Files.Read.All".to_string()
+            "https://graph.microsoft.com/Files.Read.All".to_string(),
+            "https://graph.microsoft.com/Files.ReadWrite".to_string(),
+            "https://graph.microsoft.com/Files.ReadWrite.All".to_string(),
+            "https://graph.microsoft.com/Sites.ReadWrite.All".to_string()
         ],
         auto_open_auth_url: true,
         redirect_endpoint: Some("/redirect".to_string()),
@@ -179,10 +187,10 @@ fn main() {
 
     // Client
     let access_token = token_obtainer.get_token().unwrap().access_token();
-    let http_client = HttpClient{
+    let http_client = HttpClient {
         client: blocking::Client::new(),
     };
-    let client = OneDriveClient{
+    let client = OneDriveClient {
         access_token: access_token,
         http_handler: Box::new(http_client),
         drive_id: None,
@@ -199,18 +207,20 @@ fn main() {
                     let drive_item = client.get_drive_item(path.clone());
                     match drive_item {
                         Ok(res) => println!("{:#?}", res),
-                        Err(err) => panic!("Unable to get drive item from {} - {:?}", path.clone(), err),
+                        Err(err) =>
+                            panic!("Unable to get drive item from {} - {:?}", path.clone(), err),
                     }
-                },
+                }
                 GetSubCommand::DriveItemChildren { path } => {
                     let collection = client.get_drive_item_children(path.clone());
                     match collection {
                         Ok(res) => println!("{:#?}", res),
-                        Err(err) => panic!("Unable to get drive item from {} - {:?}", path.clone(), err),
+                        Err(err) =>
+                            panic!("Unable to get drive item from {} - {:?}", path.clone(), err),
                     }
-                },
+                }
             }
-        },
+        }
         // Create
         SubCommand::Create { object } => {
             match object {
@@ -220,20 +230,22 @@ fn main() {
                         Err(_) => panic!("Invalid type provided for sharing links: {}", the_type),
                     };
                     let scope_to_use = match scope {
-                        Some(the_scope) => Some(match SharingLinkScope::from_str(the_scope.as_str()) {
-                            Ok(res) => res,
-                            Err(_) => panic!("Invalid scope provided for sharing links: {}", the_scope)
-                        }),
+                        Some(the_scope) =>
+                            Some(match SharingLinkScope::from_str(the_scope.as_str()) {
+                                Ok(res) => res,
+                                Err(_) =>
+                                    panic!("Invalid scope provided for sharing links: {}", the_scope),
+                            }),
                         None => None,
                     };
-                    let link_request = CreateLinkRequest{
+                    let link_request = CreateLinkRequest {
                         the_type: type_to_use,
-                        scope:  scope_to_use,
+                        scope: scope_to_use,
                     };
                     let links = client.create_sharing_links(path, link_request);
                     println!("{:#?}", links.unwrap());
-                },
+                }
             }
-        },
+        }
     }
 }

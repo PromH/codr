@@ -1,7 +1,7 @@
 //!
 //! Code contained in the library is based on the oauth2-rs example for Microsoft Graph.
 //! Link to example: https://github.com/ramosbugs/oauth2-rs/blob/main/examples/msgraph.rs
-//! 
+//!
 
 use oauth2::basic::BasicClient;
 use oauth2::{
@@ -29,10 +29,11 @@ use std::net::TcpListener;
 use bytes::Bytes;
 use url::Url;
 
-use log::{debug, error, info, trace, warn};
+use log::{ debug, error, info, trace, warn };
 
 // Constants
-pub const GENERATE_MS_OAUTH2_CREDENTIALS_INSTRUCTIONS: &str = r#"
+pub const GENERATE_MS_OAUTH2_CREDENTIALS_INSTRUCTIONS: &str =
+    r#"
     Showcases the Microsoft Graph OAuth2 process for requesting access to Microsoft services using PKCE.
     Before running it, you'll need to generate your own Microsoft OAuth2 credentials. See
     https://docs.microsoft.com/azure/active-directory/develop/quickstart-register-app
@@ -46,7 +47,7 @@ pub const GENERATE_MS_OAUTH2_CREDENTIALS_INSTRUCTIONS: &str = r#"
       as MSGRAPH_CLIENT_SECRET.
     * In the left menu select `API permissions` and add a permission. Select Microsoft Graph and
       `Delegated permissions`. Add the `Files.Read` permission (and other permissions as necessary).
-"#; 
+"#;
 pub const API_BASE_URL: &str = "https://graph.microsoft.com/v1.0/";
 const AUTH_URL: &str = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
 const TOKEN_URL: &str = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
@@ -83,8 +84,8 @@ pub struct GraphTokenObtainer {
     pub client_secret: String,
     /// A vector of permissions that the application requires. See here: https://learn.microsoft.com/en-us/azure/active-directory/develop/permissions-consent-overview?WT.mc_id=Portal-Microsoft_AAD_RegisteredApps
     pub access_scopes: Vec<String>,
-    // If true, automatically opens the generated authorization URL.
-    pub auto_open_auth_url: bool, 
+    /// If true, automatically opens the generated authorization URL.
+    pub auto_open_auth_url: bool,
     /// Optional port to use for the local redirect server that gets started up.
     pub redirect_port: Option<u16>,
     /// Optional url path to use for handling incoming redirect requests (e.g. `/redirect`).
@@ -102,12 +103,12 @@ impl TokenObtainer for GraphTokenObtainer {
 
         // Redirect URL
         let redirect_port = match &self.redirect_port {
-            Some(port) => { *port },
-            None => { DEFAULT_BIND_PORT },
+            Some(port) => { *port }
+            None => { DEFAULT_BIND_PORT }
         };
         let redirect_endpoint = match &self.redirect_endpoint {
-            Some(endpoint) => { endpoint.clone() },
-            None => { DEFAULT_REDIRECT_ENDPOINT.to_string() },
+            Some(endpoint) => { endpoint.clone() }
+            None => { DEFAULT_REDIRECT_ENDPOINT.to_string() }
         };
         let redirect_url = format!("http://{}:{}{}", "localhost", redirect_port, redirect_endpoint);
         log::debug!("redirect_url={:?}", redirect_url);
@@ -138,7 +139,7 @@ impl TokenObtainer for GraphTokenObtainer {
         let (authorize_url, csrf_state) = auth_request
             .set_pkce_challenge(pkce_code_challenge)
             .url();
-    
+
         if self.auto_open_auth_url {
             println!("Opening the following URL:\n{}\n", authorize_url.to_string());
             open::that(authorize_url.to_string()).unwrap();
@@ -147,9 +148,7 @@ impl TokenObtainer for GraphTokenObtainer {
         }
 
         // A very naive implementation of the redirect server.
-        let listener = TcpListener::bind(
-            format!("{}:{}", "127.0.0.1", redirect_port)
-        ).unwrap();
+        let listener = TcpListener::bind(format!("{}:{}", "127.0.0.1", redirect_port)).unwrap();
         for stream in listener.incoming() {
             if let Ok(mut stream) = stream {
                 let code;
@@ -504,13 +503,13 @@ pub struct PublicationFacet {
 /// The resource includes information about how the item is shared.
 pub struct Shared {
     /// The identity of the owner of the shared item.
-    pub owner: IdentitySet,
+    pub owner: Option<IdentitySet>,
     /// Indicates the scope of how the item is shared: anonymous, organization, or users.
-    pub scope: String,
+    pub scope: Option<String>,
     /// The identity of the user who shared the item.
-    pub shared_by: IdentitySet,
+    pub shared_by: Option<IdentitySet>,
     /// The UTC date and time when the item was shared.
-    pub shared_date_time: String,
+    pub shared_date_time: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -596,7 +595,7 @@ pub struct Video {
     /// Duration of the file in milliseconds.
     pub duration: i64,
     /// Four character code" name of the video format.
-    pub four_cc: String,
+    pub four_cc: Option<String>,
     /// Frame rate of the video.
     pub frame_rate: f64,
     /// Height of the video, in pixels.
@@ -680,7 +679,42 @@ pub struct DriveItem {
     pub web_dav_url: Option<String>,
 }
 
-// TODO - Handle error responses https://learn.microsoft.com/en-us/onedrive/developer/rest-api/concepts/errors?view=odsp-graph-online
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+/// Represents an error response returned by the OneDrive API
+pub struct OneDriveApiErrorResponse {
+    /// Contains one of 15 possible values. Your apps must be prepared to handle any one of these errors.
+    /// * **accessDenied**            The caller doesn't have permission to perform the action.
+    /// * **activityLimitReached**    The app or user has been throttled.
+    /// * **generalException**        An unspecified error has occurred.
+    /// * **invalidRange**            The specified byte range is invalid or unavailable.
+    /// * **invalidRequest**          The request is malformed or incorrect.
+    /// * **itemNotFound**            The resource could not be found.
+    /// * **malwareDetected**         Malware was detected in the requested resource.
+    /// * **nameAlreadyExists**       The specified item name already exists.
+    /// * **notAllowed**              The action is not allowed by the system.
+    /// * **notSupported**            The request is not supported by the system.
+    /// * **resourceModified**        The resource being updated has changed since the caller last read it, usually an eTag mismatch.
+    /// * **resyncRequired**          The delta token is no longer valid, and the app must reset the sync state.
+    /// * **serviceNotAvailable**     The service is not available. Try the request again after a delay. There may be a Retry-After header.
+    /// * **quotaLimitReached**       The user has reached their quota limit.
+    /// * **unauthenticated**         The caller is not authenticated.
+    pub code: String,
+    /// The description of the error
+    pub message: String,
+    #[serde(rename = "innererror")]
+    /// A string representing a JSON object that may recursively contain more `innererror` objects
+    /// with additional, more specific error codes.\
+    pub inner_error: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+/// Represents an error response
+pub struct ErrorResponse {
+    /// The OneDrive error
+    pub error: OneDriveApiErrorResponse,
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -695,14 +729,16 @@ pub struct DriveItemCollection {
 /// Represents a collection of DriveItems.
 pub struct Link {
     #[serde(rename = "type")]
-    // Type of the DriveItem
-    pub the_type: String,
-    // Scope of the DriveItem
-    pub scope: String,
-    // Web URL of the DriveItem
-    pub web_url: String,
-    // Application identity of the DriveItem
-    pub application: Identity,
+    /// Type of the DriveItem
+    pub the_type: Option<String>,
+    /// Scope of the DriveItem
+    pub scope: Option<String>,
+    /// Web URL of the DriveItem
+    pub web_url: Option<String>,
+    /// HTML code for an `<iframe>` to host the content
+    pub web_html: Option<String>,
+    /// Application identity of the DriveItem
+    pub application: Option<Identity>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -711,9 +747,9 @@ pub struct Link {
 pub struct ShareableLink {
     /// The ID of the DriveItem
     pub id: String,
-    // The roles of the DriveItem
+    /// The roles of the DriveItem
     pub roles: Vec<String>,
-    // The link of the DriveItem
+    /// The link of the DriveItem
     pub link: Link,
 }
 
@@ -736,7 +772,7 @@ impl FromStr for SharingLinkType {
             "view" => Ok(SharingLinkType::View),
             "edit" => Ok(SharingLinkType::Edit),
             "embed" => Ok(SharingLinkType::Embed),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -755,7 +791,7 @@ impl FromStr for SharingLinkScope {
         match String::from(s).to_lowercase().as_str() {
             "anonymous" => Ok(SharingLinkScope::Anonymous),
             "organization" => Ok(SharingLinkScope::Organization),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -788,9 +824,18 @@ pub trait OneDriver {
     /// Gets the DriveItems from a path based on the provided argument
     fn get_drive_item(&self, arg: Self::ArgType) -> Result<DriveItem, OneDriveError>;
     /// Gets the children of a DriveItem
-    fn get_drive_item_children(&self, arg: Self::ArgType) -> Result<DriveItemCollection, OneDriveError>;
+    fn get_drive_item_children(
+        &self,
+        arg: Self::ArgType
+    ) -> Result<DriveItemCollection, OneDriveError>;
     /// Creates the sharing links from DriveItems based on the provided argument
-    fn create_sharing_links(&self, arg: Self::ArgType, request: CreateLinkRequest) -> Result<Vec<ShareableLink>, OneDriveError>;
+    fn create_sharing_links(
+        &self,
+        arg: Self::ArgType,
+        request: CreateLinkRequest
+    ) -> Result<Vec<ShareableLink>, OneDriveError>;
+    /// Processes error response message
+    fn process_error_response_message(&self, msg: &str) -> OneDriveError;
 }
 
 /// Simple HTTP Response Struct
@@ -812,7 +857,12 @@ pub trait Httper {
     /// Performs a HTTP GET request
     fn get(&self, url: String, headers: Vec<(String, String)>) -> Result<HttpResponse, HttpError>;
     /// Performs a HTTP POST request
-    fn post(&self, url: String, body: String, headers: Vec<(String, String)>) -> Result<HttpResponse, HttpError>;
+    fn post(
+        &self,
+        url: String,
+        body: String,
+        headers: Vec<(String, String)>
+    ) -> Result<HttpResponse, HttpError>;
 }
 
 /// Struct that implements Httper
@@ -824,38 +874,67 @@ impl Httper for HttpClient {
     fn get(&self, url: String, headers: Vec<(String, String)>) -> Result<HttpResponse, HttpError> {
         let mut request = self.client.get(url.clone());
         for header in headers.iter() {
-            request = request.header(header.0.clone(), header.1.clone())
+            request = request.header(header.0.clone(), header.1.clone());
         }
         let response = match request.send() {
             Ok(resp) => resp,
-            Err(err) => return Err(HttpError(format!("Failed to perform GET request at {} - {}", url.clone(), err.to_string()))),
+            Err(err) => {
+                return Err(
+                    HttpError(
+                        format!(
+                            "Failed to perform GET request at {} - {}",
+                            url.clone(),
+                            err.to_string()
+                        )
+                    )
+                );
+            }
         };
         let status = response.status().clone();
         let bytes = match response.bytes() {
             Ok(b) => b,
-            Err(err) => return Err(HttpError(format!("Failed to read body - {}", err.to_string()))),
+            Err(err) => {
+                return Err(HttpError(format!("Failed to read body - {}", err.to_string())));
+            }
         };
-        Ok(HttpResponse{
+        Ok(HttpResponse {
             status: String::from(status.as_str()),
             status_code: status.as_u16(),
             body: bytes.clone(),
         })
     }
-    fn post(&self, url: String, body: String, headers: Vec<(String, String)>) -> Result<HttpResponse, HttpError> {
+    fn post(
+        &self,
+        url: String,
+        body: String,
+        headers: Vec<(String, String)>
+    ) -> Result<HttpResponse, HttpError> {
         let mut request = self.client.post(url.clone()).body(body);
         for header in headers.iter() {
-            request = request.header(header.0.clone(), header.1.clone())
+            request = request.header(header.0.clone(), header.1.clone());
         }
         let response = match request.send() {
             Ok(resp) => resp,
-            Err(err) => return Err(HttpError(format!("Failed to perform GET request at {} - {}", url.clone(), err.to_string()))),
+            Err(err) => {
+                return Err(
+                    HttpError(
+                        format!(
+                            "Failed to perform GET request at {} - {}",
+                            url.clone(),
+                            err.to_string()
+                        )
+                    )
+                );
+            }
         };
         let status = response.status().clone();
         let bytes = match response.bytes() {
             Ok(b) => b,
-            Err(err) => return Err(HttpError(format!("Failed to read body - {}", err.to_string()))),
+            Err(err) => {
+                return Err(HttpError(format!("Failed to read body - {}", err.to_string())));
+            }
         };
-        Ok(HttpResponse{
+        Ok(HttpResponse {
             status: String::from(status.as_str()),
             status_code: status.as_u16(),
             body: bytes.clone(),
@@ -881,78 +960,143 @@ pub struct OneDriveClient {
 impl OneDriver for OneDriveClient {
     type ArgType = String;
 
+    /// Processes error response message
+    fn process_error_response_message(&self, msg: &str) -> OneDriveError {
+        match serde_json::from_str::<ErrorResponse>(msg) {
+            Ok(decoded_err) => {
+                OneDriveError(format!("Received the following error message: {:#?}", decoded_err))
+            }
+            Err(err_from_decoding_err) =>
+                OneDriveError(
+                    format!("Unable to decode message into struct - {}", err_from_decoding_err)
+                ),
+        }
+    }
     /// Gets the DriveItems from a path based on the provided path to the DriveItem
     fn get_drive_item(&self, item_path: String) -> Result<DriveItem, OneDriveError> {
         let url = format!("{}me/drive/root:/{}", API_BASE_URL, item_path);
-        let headers = vec![
-            (String::from("Authorization"), format!("Bearer {}", self.access_token)),
-        ];
-        debug!("Making GET request to the following URL: {} (with the following headers: {:?})", url, headers);
+        let headers = vec![(
+            String::from("Authorization"),
+            format!("Bearer {}", self.access_token),
+        )];
+        debug!(
+            "Making GET request to the following URL: {} (with the following headers: {:?})",
+            url,
+            headers
+        );
         let resp = match self.http_handler.get(url, headers) {
             Ok(resp) => resp,
-            Err(err) => return Err(OneDriveError(format!("Unable to get DriveItem from path=`{}` - {:?}", item_path, err))),
+            Err(err) => {
+                return Err(
+                    OneDriveError(
+                        format!("Unable to get DriveItem from path=`{}` - {:?}", item_path, err)
+                    )
+                );
+            }
         };
         let body = match String::from_utf8(resp.body.to_vec()) {
             Ok(s) => s,
-            Err(err) => return Err(OneDriveError(format!("Unable to convert bytes to string - {}", err))),
+            Err(err) => {
+                return Err(OneDriveError(format!("Unable to convert bytes to string - {}", err)));
+            }
         };
         debug!("Received response body: {}", body);
         match serde_json::from_str(body.as_str()) {
             Ok(drive_item) => Ok(drive_item),
-            Err(err) => Err(OneDriveError(format!("Unable to decode body into struct - {}", err))),
+            Err(err) => {
+                error!("Unable to decode message into struct - {}", err);
+                return Err(self.process_error_response_message(body.as_str()));
+            }
         }
     }
     /// Gets the children of a DriveItem based on the provided path to the DriveItem
-    fn get_drive_item_children(&self, item_path: String) -> Result<DriveItemCollection, OneDriveError> {
+    fn get_drive_item_children(
+        &self,
+        item_path: String
+    ) -> Result<DriveItemCollection, OneDriveError> {
         // Getting DriveItem
         let drive_item = match self.get_drive_item(item_path.clone()) {
             Ok(res) => res,
-            Err(err) => return Err(OneDriveError(format!("Unable to obtain DriveItem - {:?}", err))),
+            Err(err) => {
+                return Err(OneDriveError(format!("Unable to obtain DriveItem - {:?}", err)));
+            }
         };
 
         // Getting children
         let children_url = format!("{}me/drive/items/{}/children", API_BASE_URL, drive_item.id);
-        let headers = vec![
-            (String::from("Authorization"), format!("Bearer {}", self.access_token)),
-        ];
-        debug!("Making GET request to the following URL: {} (with the following headers: {:?})", children_url, headers);
+        let headers = vec![(
+            String::from("Authorization"),
+            format!("Bearer {}", self.access_token),
+        )];
+        debug!(
+            "Making GET request to the following URL: {} (with the following headers: {:?})",
+            children_url,
+            headers
+        );
         let resp = match self.http_handler.get(children_url, headers) {
             Ok(resp) => resp,
-            Err(err) => return Err(OneDriveError(format!("Unable to get DriveItem from path=`{}` - {:?}", item_path.clone(), err))),
+            Err(err) => {
+                return Err(
+                    OneDriveError(
+                        format!(
+                            "Unable to get DriveItem from path=`{}` - {:?}",
+                            item_path.clone(),
+                            err
+                        )
+                    )
+                );
+            }
         };
         let body = match String::from_utf8(resp.body.to_vec()) {
             Ok(s) => s,
-            Err(err) => return Err(OneDriveError(format!("Unable to convert bytes to string - {}", err))),
+            Err(err) => {
+                return Err(OneDriveError(format!("Unable to convert bytes to string - {}", err)));
+            }
         };
         debug!("Received response body: {}", body);
-        match serde_json::from_str(body.as_str()) {
+
+        match serde_json::from_str::<DriveItemCollection>(body.as_str()) {
             Ok(collection) => Ok(collection),
-            Err(err) => Err(OneDriveError(format!("Unable to decode body into struct - {}", err))),
+            Err(err) => {
+                error!("Unable to decode message into struct - {}", err);
+                return Err(self.process_error_response_message(body.as_str()));
+            }
         }
     }
     /// Creates the sharing links from DriveItems based on the provided path to the DriveItem
-    fn create_sharing_links(&self, item_path: String, request: CreateLinkRequest) -> Result<Vec<ShareableLink>, OneDriveError> {
+    fn create_sharing_links(
+        &self,
+        item_path: String,
+        request: CreateLinkRequest
+    ) -> Result<Vec<ShareableLink>, OneDriveError> {
         // Progress bar
         let pb: indicatif::ProgressBar;
 
         // Getting DriveItem
         let drive_item = match self.get_drive_item(item_path.clone()) {
             Ok(res) => res,
-            Err(err) => return Err(OneDriveError(format!("Unable to obtain DriveItem - {:?}", err))),
+            Err(err) => {
+                return Err(OneDriveError(format!("Unable to obtain DriveItem - {:?}", err)));
+            }
         };
 
         let collection: DriveItemCollection;
         if let Some(folder) = drive_item.folder {
-            debug!("DriveItem is a folder with {} children DriveItems - Getting DriveItem children", folder.child_count);
+            debug!(
+                "DriveItem is a folder with {} children DriveItems - Getting DriveItem children",
+                folder.child_count
+            );
             // Getting children of DriveItem
             collection = match self.get_drive_item_children(item_path.clone()) {
                 Ok(res) => res,
-                Err(err) => return Err(OneDriveError(format!("Unable to obtain DriveItem - {:?}", err))),
+                Err(err) => {
+                    return Err(OneDriveError(format!("Unable to obtain DriveItem - {:?}", err)));
+                }
             };
             pb = indicatif::ProgressBar::new(folder.child_count.try_into().unwrap());
         } else {
-            debug!("DriveItem is a single file - {:#?}" , drive_item);
-            collection = DriveItemCollection{
+            debug!("DriveItem is a single file - {:#?}", drive_item);
+            collection = DriveItemCollection {
                 value: vec![drive_item],
             };
             pb = indicatif::ProgressBar::new(1);
@@ -961,26 +1105,39 @@ impl OneDriver for OneDriveClient {
         // Serialising request
         let serialised_request = match serde_json::to_string(&request) {
             Ok(serialised) => serialised,
-            Err(err) => return Err(OneDriveError(format!("Unable to serialise request - {:?}", err))),
+            Err(err) => {
+                return Err(OneDriveError(format!("Unable to serialise request - {:?}", err)));
+            }
         };
 
         // Getting shareable links
         let mut links = Vec::<ShareableLink>::new();
         for (i, child) in collection.value.iter().enumerate() {
-            let create_link_url = format!("{}me/drive/items/{}/createLink", API_BASE_URL, child.id);
+            let create_link_url = format!(
+                "{}me/drive/items/{}/createLink",
+                API_BASE_URL,
+                child.id.clone()
+            );
             let headers = vec![
                 (String::from("Authorization"), format!("Bearer {}", self.access_token)),
-                (String::from("Content-type"), String::from("application/json")),
+                (String::from("Content-type"), String::from("application/json"))
             ];
 
-            debug!("Making POST request to URL={} with body={} (with the following  headers: {:?})", create_link_url, serialised_request.clone(), headers);
-            let resp = match self.http_handler.post(create_link_url, serialised_request.clone(), headers) {
+            debug!(
+                "Making POST request to URL={} with body={} (with the following  headers: {:?})",
+                create_link_url,
+                serialised_request.clone(),
+                headers
+            );
+            let resp = match
+                self.http_handler.post(create_link_url, serialised_request.clone(), headers)
+            {
                 Ok(resp) => resp,
                 Err(err) => {
                     error!("Unable to get DriveItem from path=`{}` - {:?}", item_path.clone(), err);
                     pb.inc(1);
                     continue;
-                },
+                }
             };
             let body = match String::from_utf8(resp.body.to_vec()) {
                 Ok(s) => s,
@@ -988,17 +1145,28 @@ impl OneDriver for OneDriveClient {
                     error!("Unable to convert bytes to string - {}", err);
                     pb.inc(1);
                     continue;
-                },
+                }
             };
             debug!("Received response body: {}", body);
 
             match serde_json::from_str(body.as_str()) {
                 Ok(shareable_link) => links.push(shareable_link),
-                Err(err) => error!("Unable to decode body into struct - {}", err),
-            };
+                Err(err) => {
+                    error!("Unable to decode message into struct - {}", err);
+                    error!("{:?}", self.process_error_response_message(body.as_str()));
+                }
+            }
+            let filename = child.name.clone();
+            let parent_path = child.parent_reference.path.clone();
 
             pb.inc(1);
-            pb.println(format!("[+] finished creating links #{}", i));
+            pb.println(
+                format!(
+                    "[+] finished creating sharing link for {} - {} link(s) finished ",
+                    format!("{}/{}", parent_path, filename),
+                    i
+                )
+            );
         }
 
         Ok(links)
