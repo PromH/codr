@@ -154,7 +154,7 @@ impl TokenObtainer for GraphTokenObtainer {
                 let code_pair = url
                     .query_pairs()
                     .find(|pair| {
-                        let &(ref key, _) = pair;
+                        let (key, _) = pair;
                         key == "code"
                     })
                     .unwrap();
@@ -165,7 +165,7 @@ impl TokenObtainer for GraphTokenObtainer {
                 let state_pair = url
                     .query_pairs()
                     .find(|pair| {
-                        let &(ref key, _) = pair;
+                        let (key, _) = pair;
                         key == "state"
                     })
                     .unwrap();
