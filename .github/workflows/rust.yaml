@@ -36,22 +36,30 @@ jobs:
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
+        id: rust-toolchain
         with:
           toolchain: ${{ matrix.rust_os.rust }}
           override: true
           components: clippy, rustfmt
 
-      - name: Make Rust toolchain available for other jobs
-        uses: actions/upload-artifact@v3
+      - name: Cache Rust toolchain
+        uses: actions/cache/save@v3
+        id: cache-cargo
         with:
-          name: rust-toolchains
-          path: ~/.cargo/bin
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ job.setup.steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
 
   # Checks to see if linting and formatting has been adhered to
   checks:
     # The type of runner that the job will run on
     runs-on: ${{ matrix.rust_os.os }}
-    needs: [setup]
+    needs:
+      - setup
 
     strategy:
       fail-fast: false
@@ -68,11 +76,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Make Rust toolchain available for other jobs
-        uses: actions/download-artifact@v3
+      - name: Restore cached Rust toolchain
+        uses: actions/cache/save@v3
+        id: cache-cargo
         with:
-          name: rust-toolchains
-          path: ~/.cargo/bin
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ job.setup.steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Clippy
         if: ${{ matrix.rust_os.rust == '1.66.0' }}
@@ -86,7 +100,8 @@ jobs:
   tests:
     # The type of runner that the job will run on
     runs-on: ${{ matrix.rust_os.os }}
-    needs: [setup]
+    needs:
+      - setup
 
     strategy:
       fail-fast: false
@@ -110,7 +125,10 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ${{ matrix.rust_os.os }}
-    needs: [setup, checks, tests]
+    needs:
+      - setup
+      - checks
+      - tests
 
     strategy:
       fail-fast: false
