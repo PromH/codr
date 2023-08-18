@@ -8,6 +8,6 @@ plugins:
   - - "@semantic-release/changelog"
     - changelogFile: CHANGELOG.md
   - - "@semantic-release/git"
-    - assets: ["CHANGELOG.md", "**/Cargo.toml"]
+    - assets: ["CHANGELOG.md", "package.json", "**/Cargo.toml"]
   - "@semantic-release/github"
   - "@semantic-release-cargo/semantic-release-cargo"
