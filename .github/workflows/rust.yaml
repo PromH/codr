@@ -44,6 +44,9 @@ jobs:
           override: true
           components: clippy, rustfmt
 
+      - name: Build (to get dependencies)
+        run: cargo build --verbose
+
       - name: Cache Rust toolchain
         uses: actions/cache/save@v3
         id: cache-cargo
@@ -77,21 +80,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: check cache
-        run: ls ~/.cargo/bin
-
-      - name: Restore cached Rust toolchain
-        uses: actions/cache/save@v3
-        id: cache-cargo
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ job.setup.steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Clippy
         if: ${{ matrix.rust_os.rust == '1.66.0' }}
