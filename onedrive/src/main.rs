@@ -1,5 +1,5 @@
+use onedrive::{GraphTokenObtainer, TokenObtainer};
 use std::env;
-use onedrive::{ GraphTokenObtainer, TokenObtainer };
 use std::time::SystemTime;
 
 fn setup_logger(log_level: log::LevelFilter) -> Result<(), fern::InitError> {
@@ -26,20 +26,21 @@ fn main() {
     setup_logger(log::LevelFilter::Info).unwrap();
 
     let token_obtainer = GraphTokenObtainer {
-        client_id: env
-            ::var("MSGRAPH_CLIENT_ID")
+        client_id: env::var("MSGRAPH_CLIENT_ID")
             .expect("Missing the MSGRAPH_CLIENT_ID environment variable."),
-        client_secret: env
-            ::var("MSGRAPH_CLIENT_SECRET")
+        client_secret: env::var("MSGRAPH_CLIENT_SECRET")
             .expect("Missing the MSGRAPH_CLIENT_SECRET environment variable."),
         access_scopes: vec![
             "https://graph.microsoft.com/Files.Read".to_string(),
             "https://graph.microsoft.com/User.Read".to_string(),
-            "https://graph.microsoft.com/Files.Read.All".to_string()
+            "https://graph.microsoft.com/Files.Read.All".to_string(),
         ],
         auto_open_auth_url: true,
         redirect_endpoint: Some("/redirect".to_string()),
         redirect_port: Some(8080),
     };
-    println!("Token={:?}", token_obtainer.get_token().unwrap().access_token())
+    println!(
+        "Token={:?}",
+        token_obtainer.get_token().unwrap().access_token()
+    )
 }

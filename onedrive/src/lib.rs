@@ -5,35 +5,25 @@
 
 use oauth2::basic::BasicClient;
 use oauth2::{
-    AuthType,
-    AuthUrl,
-    AuthorizationCode,
-    ClientId,
-    ClientSecret,
-    CsrfToken,
-    PkceCodeChallenge,
-    RedirectUrl,
-    Scope,
-    TokenUrl,
-    TokenResponse,
+    AuthType, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
+    RedirectUrl, Scope, TokenResponse, TokenUrl,
 };
 
 use reqwest::blocking;
 
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 
-use std::str::FromStr;
-use std::fmt::Debug;
-use std::io::{ BufRead, BufReader, Write };
-use std::net::TcpListener;
 use bytes::Bytes;
+use std::fmt::Debug;
+use std::io::{BufRead, BufReader, Write};
+use std::net::TcpListener;
+use std::str::FromStr;
 use url::Url;
 
-use log::{ debug, error, info, trace, warn };
+use log::{debug, error};
 
 // Constants
-pub const GENERATE_MS_OAUTH2_CREDENTIALS_INSTRUCTIONS: &str =
-    r#"
+pub const GENERATE_MS_OAUTH2_CREDENTIALS_INSTRUCTIONS: &str = r#"
     Showcases the Microsoft Graph OAuth2 process for requesting access to Microsoft services using PKCE.
     Before running it, you'll need to generate your own Microsoft OAuth2 credentials. See
     https://docs.microsoft.com/azure/active-directory/develop/quickstart-register-app
@@ -96,21 +86,23 @@ impl TokenObtainer for GraphTokenObtainer {
     fn get_token(&self) -> Result<Token, TokenError> {
         let graph_client_id = ClientId::new(self.client_id.clone());
         let graph_client_secret = ClientSecret::new(self.client_secret.clone());
-        let auth_url = AuthUrl::new(AUTH_URL.to_string()).expect(
-            "Invalid authorization endpoint URL"
-        );
+        let auth_url =
+            AuthUrl::new(AUTH_URL.to_string()).expect("Invalid authorization endpoint URL");
         let token_url = TokenUrl::new(TOKEN_URL.to_string()).expect("Invalid token endpoint URL");
 
         // Redirect URL
         let redirect_port = match &self.redirect_port {
-            Some(port) => { *port }
-            None => { DEFAULT_BIND_PORT }
+            Some(port) => *port,
+            None => DEFAULT_BIND_PORT,
         };
         let redirect_endpoint = match &self.redirect_endpoint {
-            Some(endpoint) => { endpoint.clone() }
-            None => { DEFAULT_REDIRECT_ENDPOINT.to_string() }
+            Some(endpoint) => endpoint.clone(),
+            None => DEFAULT_REDIRECT_ENDPOINT.to_string(),
         };
-        let redirect_url = format!("http://{}:{}{}", "localhost", redirect_port, redirect_endpoint);
+        let redirect_url = format!(
+            "http://{}:{}{}",
+            "localhost", redirect_port, redirect_endpoint
+        );
         log::debug!("redirect_url={:?}", redirect_url);
 
         // Set up the config for the Microsoft Graph OAuth2 process.
@@ -118,14 +110,12 @@ impl TokenObtainer for GraphTokenObtainer {
             graph_client_id,
             Some(graph_client_secret),
             auth_url,
-            Some(token_url)
+            Some(token_url),
         )
-            // Microsoft Graph requires client_id and client_secret in URL rather than
-            // using Basic authentication.
-            .set_auth_type(AuthType::RequestBody)
-            .set_redirect_uri(
-                RedirectUrl::new(redirect_url.clone()).expect("Invalid redirect URL")
-            );
+        // Microsoft Graph requires client_id and client_secret in URL rather than
+        // using Basic authentication.
+        .set_auth_type(AuthType::RequestBody)
+        .set_redirect_uri(RedirectUrl::new(redirect_url).expect("Invalid redirect URL"));
 
         // Microsoft Graph supports Proof Key for Code Exchange (PKCE - https://oauth.net/2/pkce/).
         // Create a PKCE code verifier and SHA-256 encode it as a code challenge.
@@ -136,88 +126,85 @@ impl TokenObtainer for GraphTokenObtainer {
         for scope_string in self.access_scopes.iter() {
             auth_request = auth_request.add_scope(Scope::new(scope_string.to_string()));
         }
-        let (authorize_url, csrf_state) = auth_request
-            .set_pkce_challenge(pkce_code_challenge)
-            .url();
+        let (authorize_url, csrf_state) =
+            auth_request.set_pkce_challenge(pkce_code_challenge).url();
 
         if self.auto_open_auth_url {
-            println!("Opening the following URL:\n{}\n", authorize_url.to_string());
+            println!("Opening the following URL:\n{}\n", authorize_url);
             open::that(authorize_url.to_string()).unwrap();
         } else {
-            println!("Open this URL in your browser:\n{}\n", authorize_url.to_string());
+            println!("Open this URL in your browser:\n{}\n", authorize_url);
         }
 
         // A very naive implementation of the redirect server.
         let listener = TcpListener::bind(format!("{}:{}", "127.0.0.1", redirect_port)).unwrap();
-        for stream in listener.incoming() {
-            if let Ok(mut stream) = stream {
-                let code;
-                let state;
-                {
-                    let mut reader = BufReader::new(&stream);
+        if let Some(mut stream) = listener.incoming().flatten().next() {
+            let code;
+            let state;
+            {
+                let mut reader = BufReader::new(&stream);
 
-                    let mut request_line = String::new();
-                    reader.read_line(&mut request_line).unwrap();
+                let mut request_line = String::new();
+                reader.read_line(&mut request_line).unwrap();
 
-                    let redirect_endpoint = request_line.split_whitespace().nth(1).unwrap();
-                    let url = Url::parse(
-                        &("http://localhost".to_string() + redirect_endpoint)
-                    ).unwrap();
+                let redirect_endpoint = request_line.split_whitespace().nth(1).unwrap();
+                let url =
+                    Url::parse(&("http://localhost".to_string() + redirect_endpoint)).unwrap();
 
-                    let code_pair = url
-                        .query_pairs()
-                        .find(|pair| {
-                            let &(ref key, _) = pair;
-                            key == "code"
-                        })
-                        .unwrap();
+                let code_pair = url
+                    .query_pairs()
+                    .find(|pair| {
+                        let &(ref key, _) = pair;
+                        key == "code"
+                    })
+                    .unwrap();
 
-                    let (_, value) = code_pair;
-                    code = AuthorizationCode::new(value.into_owned());
+                let (_, value) = code_pair;
+                code = AuthorizationCode::new(value.into_owned());
 
-                    let state_pair = url
-                        .query_pairs()
-                        .find(|pair| {
-                            let &(ref key, _) = pair;
-                            key == "state"
-                        })
-                        .unwrap();
+                let state_pair = url
+                    .query_pairs()
+                    .find(|pair| {
+                        let &(ref key, _) = pair;
+                        key == "state"
+                    })
+                    .unwrap();
 
-                    let (_, value) = state_pair;
-                    state = CsrfToken::new(value.into_owned());
-                }
-
-                let message = "Go back to your terminal :)";
-                let response = format!(
-                    "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
-                    message.len(),
-                    message
-                );
-                stream.write_all(response.as_bytes()).unwrap();
-
-                log::debug!("MS Graph returned the following code:\n{}\n", code.secret());
-                log::debug!(
-                    "MS Graph returned the following state:\n{} (expected `{}`)\n",
-                    state.secret(),
-                    csrf_state.secret()
-                );
-
-                // Exchange the code with a token.
-                let token = client
-                    .exchange_code(code)
-                    // Send the PKCE code verifier in the token request
-                    .set_pkce_verifier(pkce_code_verifier)
-                    .request(oauth2::reqwest::http_client);
-
-                log::debug!("MS Graph returned the following token:\n{:?}\n", token);
-
-                // The server will terminate itself after collecting the first code.
-                return match token {
-                    Ok(token_resp) =>
-                        Ok(Token { access_token: token_resp.access_token().secret().to_string() }),
-                    Err(_err) => Err(TokenError("Failed to obtain token ".to_string())),
-                };
+                let (_, value) = state_pair;
+                state = CsrfToken::new(value.into_owned());
             }
+
+            let message = "Go back to your terminal :)";
+            let response = format!(
+                "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
+                message.len(),
+                message
+            );
+            stream.write_all(response.as_bytes()).unwrap();
+
+            log::debug!("MS Graph returned the following code:\n{}\n", code.secret());
+            log::debug!(
+                "MS Graph returned the following state:\n{} (expected `{}`)\n",
+                state.secret(),
+                csrf_state.secret()
+            );
+
+            // Exchange the code with a token.
+            let token = client
+                .exchange_code(code)
+                // Send the PKCE code verifier in the token request
+                .set_pkce_verifier(pkce_code_verifier)
+                .request(oauth2::reqwest::http_client);
+
+            log::debug!("MS Graph returned the following token:\n{:?}\n", token);
+
+            // The server will terminate itself after collecting the first code.
+            return match token {
+                Ok(token_resp) => Ok(Token {
+                    access_token: token_resp.access_token().secret().to_string(),
+                }),
+                Err(_err) => Err(TokenError("Failed to obtain token ".to_string())),
+            };
         }
         Err(TokenError("Failed to obtain token".to_string()))
     }
@@ -826,13 +813,13 @@ pub trait OneDriver {
     /// Gets the children of a DriveItem
     fn get_drive_item_children(
         &self,
-        arg: Self::ArgType
+        arg: Self::ArgType,
     ) -> Result<DriveItemCollection, OneDriveError>;
     /// Creates the sharing links from DriveItems based on the provided argument
     fn create_sharing_links(
         &self,
         arg: Self::ArgType,
-        request: CreateLinkRequest
+        request: CreateLinkRequest,
     ) -> Result<Vec<ShareableLink>, OneDriveError>;
     /// Processes error response message
     fn process_error_response_message(&self, msg: &str) -> OneDriveError;
@@ -861,7 +848,7 @@ pub trait Httper {
         &self,
         url: String,
         body: String,
-        headers: Vec<(String, String)>
+        headers: Vec<(String, String)>,
     ) -> Result<HttpResponse, HttpError>;
 }
 
@@ -879,65 +866,55 @@ impl Httper for HttpClient {
         let response = match request.send() {
             Ok(resp) => resp,
             Err(err) => {
-                return Err(
-                    HttpError(
-                        format!(
-                            "Failed to perform GET request at {} - {}",
-                            url.clone(),
-                            err.to_string()
-                        )
-                    )
-                );
+                return Err(HttpError(format!(
+                    "Failed to perform GET request at {} - {}",
+                    url, err
+                )));
             }
         };
-        let status = response.status().clone();
+        let status = response.status();
         let bytes = match response.bytes() {
             Ok(b) => b,
             Err(err) => {
-                return Err(HttpError(format!("Failed to read body - {}", err.to_string())));
+                return Err(HttpError(format!("Failed to read body - {}", err)));
             }
         };
         Ok(HttpResponse {
             status: String::from(status.as_str()),
             status_code: status.as_u16(),
-            body: bytes.clone(),
+            body: bytes,
         })
     }
     fn post(
         &self,
         url: String,
         body: String,
-        headers: Vec<(String, String)>
+        headers: Vec<(String, String)>,
     ) -> Result<HttpResponse, HttpError> {
-        let mut request = self.client.post(url.clone()).body(body);
+        let mut request = self.client.post(url).body(body);
         for header in headers.iter() {
             request = request.header(header.0.clone(), header.1.clone());
         }
         let response = match request.send() {
             Ok(resp) => resp,
             Err(err) => {
-                return Err(
-                    HttpError(
-                        format!(
-                            "Failed to perform GET request at {} - {}",
-                            url.clone(),
-                            err.to_string()
-                        )
-                    )
-                );
+                return Err(HttpError(format!(
+                    "Failed to perform GET request at {} - {}",
+                    AUTH_URL, err
+                )));
             }
         };
-        let status = response.status().clone();
+        let status = response.status();
         let bytes = match response.bytes() {
             Ok(b) => b,
             Err(err) => {
-                return Err(HttpError(format!("Failed to read body - {}", err.to_string())));
+                return Err(HttpError(format!("Failed to read body - {}", err)));
             }
         };
         Ok(HttpResponse {
             status: String::from(status.as_str()),
             status_code: status.as_u16(),
-            body: bytes.clone(),
+            body: bytes,
         })
     }
 }
@@ -963,13 +940,14 @@ impl OneDriver for OneDriveClient {
     /// Processes error response message
     fn process_error_response_message(&self, msg: &str) -> OneDriveError {
         match serde_json::from_str::<ErrorResponse>(msg) {
-            Ok(decoded_err) => {
-                OneDriveError(format!("Received the following error message: {:#?}", decoded_err))
-            }
-            Err(err_from_decoding_err) =>
-                OneDriveError(
-                    format!("Unable to decode message into struct - {}", err_from_decoding_err)
-                ),
+            Ok(decoded_err) => OneDriveError(format!(
+                "Received the following error message: {:#?}",
+                decoded_err
+            )),
+            Err(err_from_decoding_err) => OneDriveError(format!(
+                "Unable to decode message into struct - {}",
+                err_from_decoding_err
+            )),
         }
     }
     /// Gets the DriveItems from a path based on the provided path to the DriveItem
@@ -981,23 +959,24 @@ impl OneDriver for OneDriveClient {
         )];
         debug!(
             "Making GET request to the following URL: {} (with the following headers: {:?})",
-            url,
-            headers
+            url, headers
         );
         let resp = match self.http_handler.get(url, headers) {
             Ok(resp) => resp,
             Err(err) => {
-                return Err(
-                    OneDriveError(
-                        format!("Unable to get DriveItem from path=`{}` - {:?}", item_path, err)
-                    )
-                );
+                return Err(OneDriveError(format!(
+                    "Unable to get DriveItem from path=`{}` - {:?}",
+                    item_path, err
+                )));
             }
         };
         let body = match String::from_utf8(resp.body.to_vec()) {
             Ok(s) => s,
             Err(err) => {
-                return Err(OneDriveError(format!("Unable to convert bytes to string - {}", err)));
+                return Err(OneDriveError(format!(
+                    "Unable to convert bytes to string - {}",
+                    err
+                )));
             }
         };
         debug!("Received response body: {}", body);
@@ -1012,13 +991,16 @@ impl OneDriver for OneDriveClient {
     /// Gets the children of a DriveItem based on the provided path to the DriveItem
     fn get_drive_item_children(
         &self,
-        item_path: String
+        item_path: String,
     ) -> Result<DriveItemCollection, OneDriveError> {
         // Getting DriveItem
         let drive_item = match self.get_drive_item(item_path.clone()) {
             Ok(res) => res,
             Err(err) => {
-                return Err(OneDriveError(format!("Unable to obtain DriveItem - {:?}", err)));
+                return Err(OneDriveError(format!(
+                    "Unable to obtain DriveItem - {:?}",
+                    err
+                )));
             }
         };
 
@@ -1030,27 +1012,24 @@ impl OneDriver for OneDriveClient {
         )];
         debug!(
             "Making GET request to the following URL: {} (with the following headers: {:?})",
-            children_url,
-            headers
+            children_url, headers
         );
         let resp = match self.http_handler.get(children_url, headers) {
             Ok(resp) => resp,
             Err(err) => {
-                return Err(
-                    OneDriveError(
-                        format!(
-                            "Unable to get DriveItem from path=`{}` - {:?}",
-                            item_path.clone(),
-                            err
-                        )
-                    )
-                );
+                return Err(OneDriveError(format!(
+                    "Unable to get DriveItem from path=`{}` - {:?}",
+                    item_path, err
+                )));
             }
         };
         let body = match String::from_utf8(resp.body.to_vec()) {
             Ok(s) => s,
             Err(err) => {
-                return Err(OneDriveError(format!("Unable to convert bytes to string - {}", err)));
+                return Err(OneDriveError(format!(
+                    "Unable to convert bytes to string - {}",
+                    err
+                )));
             }
         };
         debug!("Received response body: {}", body);
@@ -1067,7 +1046,7 @@ impl OneDriver for OneDriveClient {
     fn create_sharing_links(
         &self,
         item_path: String,
-        request: CreateLinkRequest
+        request: CreateLinkRequest,
     ) -> Result<Vec<ShareableLink>, OneDriveError> {
         // Progress bar
         let pb: indicatif::ProgressBar;
@@ -1076,7 +1055,10 @@ impl OneDriver for OneDriveClient {
         let drive_item = match self.get_drive_item(item_path.clone()) {
             Ok(res) => res,
             Err(err) => {
-                return Err(OneDriveError(format!("Unable to obtain DriveItem - {:?}", err)));
+                return Err(OneDriveError(format!(
+                    "Unable to obtain DriveItem - {:?}",
+                    err
+                )));
             }
         };
 
@@ -1090,7 +1072,10 @@ impl OneDriver for OneDriveClient {
             collection = match self.get_drive_item_children(item_path.clone()) {
                 Ok(res) => res,
                 Err(err) => {
-                    return Err(OneDriveError(format!("Unable to obtain DriveItem - {:?}", err)));
+                    return Err(OneDriveError(format!(
+                        "Unable to obtain DriveItem - {:?}",
+                        err
+                    )));
                 }
             };
             pb = indicatif::ProgressBar::new(folder.child_count.try_into().unwrap());
@@ -1106,7 +1091,10 @@ impl OneDriver for OneDriveClient {
         let serialised_request = match serde_json::to_string(&request) {
             Ok(serialised) => serialised,
             Err(err) => {
-                return Err(OneDriveError(format!("Unable to serialise request - {:?}", err)));
+                return Err(OneDriveError(format!(
+                    "Unable to serialise request - {:?}",
+                    err
+                )));
             }
         };
 
@@ -1119,8 +1107,14 @@ impl OneDriver for OneDriveClient {
                 child.id.clone()
             );
             let headers = vec![
-                (String::from("Authorization"), format!("Bearer {}", self.access_token)),
-                (String::from("Content-type"), String::from("application/json"))
+                (
+                    String::from("Authorization"),
+                    format!("Bearer {}", self.access_token),
+                ),
+                (
+                    String::from("Content-type"),
+                    String::from("application/json"),
+                ),
             ];
 
             debug!(
@@ -1129,16 +1123,22 @@ impl OneDriver for OneDriveClient {
                 serialised_request.clone(),
                 headers
             );
-            let resp = match
-                self.http_handler.post(create_link_url, serialised_request.clone(), headers)
-            {
-                Ok(resp) => resp,
-                Err(err) => {
-                    error!("Unable to get DriveItem from path=`{}` - {:?}", item_path.clone(), err);
-                    pb.inc(1);
-                    continue;
-                }
-            };
+            let resp =
+                match self
+                    .http_handler
+                    .post(create_link_url, serialised_request.clone(), headers)
+                {
+                    Ok(resp) => resp,
+                    Err(err) => {
+                        error!(
+                            "Unable to get DriveItem from path=`{}` - {:?}",
+                            item_path.clone(),
+                            err
+                        );
+                        pb.inc(1);
+                        continue;
+                    }
+                };
             let body = match String::from_utf8(resp.body.to_vec()) {
                 Ok(s) => s,
                 Err(err) => {
@@ -1160,13 +1160,11 @@ impl OneDriver for OneDriveClient {
             let parent_path = child.parent_reference.path.clone();
 
             pb.inc(1);
-            pb.println(
-                format!(
-                    "[+] finished creating sharing link for {} - {} link(s) finished ",
-                    format!("{}/{}", parent_path, filename),
-                    i
-                )
-            );
+            let progress = format!("{}/{}", parent_path, filename);
+            pb.println(format!(
+                "[+] finished creating sharing link for {} - {} link(s) finished ",
+                progress, i
+            ));
         }
 
         Ok(links)
