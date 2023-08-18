@@ -16,6 +16,14 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Save next release version as GitHub Actions outputs
+  get-next-version:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@v4
+
   # Setups up the rest of the jobs with tools
   setup:
     # The type of runner that the job will run on
@@ -140,10 +148,6 @@ jobs:
 
       - name: Build
         run: cargo build --verbose
-
-  # Save next release version as GitHub Actions outputs
-  get-next-version:
-    uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@v4
 
   # Dry run of semantic-release
   semantic-release-dry-run:
