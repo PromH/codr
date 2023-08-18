@@ -19,5 +19,5 @@ config.y*ml
 # Logs
 *.log
 
-# Examplem files
+# Example files
 example-*.json

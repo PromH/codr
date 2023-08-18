@@ -2,7 +2,9 @@ name: Rust
 
 on:
   # Triggers the workflow on push or pull request events.
-  push: {}
+  push:
+    branches:
+      - main
   pull_request: {}
   # schedule:
   #   # Run daily to catch breakages in new Rust versions as well as new cargo audit findings.
@@ -15,8 +17,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # This workflow contains a single job called "build"
-  test:
+  # Setups up the rest of the jobs with tools
+  setup:
     # The type of runner that the job will run on
     runs-on: ${{ matrix.rust_os.os }}
 
@@ -34,13 +36,46 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        
+
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust_os.rust }}
           override: true
           components: clippy, rustfmt
+
+      - name: Make Rust toolchain available for other jobs
+        uses: actions/upload-artifact@v3
+        with:
+          name: rust-toolchains
+          path: ~/.cargo/bin
+
+  # Checks to see if linting and formatting has been adhered to
+  checks:
+    # The type of runner that the job will run on
+    runs-on: ${{ matrix.rust_os.os }}
+    needs: [setup]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        rust_os:
+          - { rust: 1.66.0, os: ubuntu-20.04 }
+          - { rust: stable, os: ubuntu-latest }
+          - { rust: beta, os: ubuntu-latest }
+          - { rust: nightly, os: ubuntu-latest }
+
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Make Rust toolchain available for other jobs
+        uses: actions/download-artifact@v3
+        with:
+          name: rust-toolchains
+          path: ~/.cargo/bin
 
       - name: Clippy
         if: ${{ matrix.rust_os.rust == '1.66.0' }}
@@ -50,8 +85,50 @@ jobs:
         if: ${{ matrix.rust_os.rust == '1.66.0' }}
         run: cargo fmt --all -- --check
 
-      - name: Build
-        run: cargo build --verbose
+  # Tests the packages in the repo
+  tests:
+    # The type of runner that the job will run on
+    runs-on: ${{ matrix.rust_os.os }}
+    needs: [setup]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        rust_os:
+          - { rust: 1.66.0, os: ubuntu-20.04 }
+          - { rust: stable, os: ubuntu-latest }
+          - { rust: beta, os: ubuntu-latest }
+          - { rust: nightly, os: ubuntu-latest }
+
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+
+    steps:
+      - uses: actions/checkout@v3
 
       - name: Run tests
         run: cargo test --verbose
+
+  # Compiles packages
+  build:
+    # The type of runner that the job will run on
+    runs-on: ${{ matrix.rust_os.os }}
+    needs: [setup, checks, tests]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        rust_os:
+          - { rust: 1.66.0, os: ubuntu-20.04 }
+          - { rust: stable, os: ubuntu-latest }
+          - { rust: beta, os: ubuntu-latest }
+          - { rust: nightly, os: ubuntu-latest }
+
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: cargo build --verbose
