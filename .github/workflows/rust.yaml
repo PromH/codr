@@ -186,16 +186,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install semantic-release-cargo
-        uses: taiki-e/install-action@v2
-        with:
-          tool: semantic-release-cargo@2
-
       - name: Prepare semantic-release for Rust
         if: needs.get-next-version.outputs.new-release-published == 'true'
         run: semantic-release-cargo prepare ${{ needs.get-next-version.outputs.new-release-version }}
 
       - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v3
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+            extra_plugins: |
+              @semantic-release-cargo/semantic-release-cargo
+              @semantic-release/git
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_PUBLISH_KEY }}
