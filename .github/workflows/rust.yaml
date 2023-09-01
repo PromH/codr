@@ -160,11 +160,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install semantic-release-cargo
-        uses: taiki-e/install-action@v2
-        with:
-          tool: semantic-release-cargo/semantic-release-cargo@2
-
       - name: Prepare semantic-release for Rust
         if: needs.get-next-version.outputs.new-release-published == 'true'
         run: semantic-release-cargo prepare ${{ needs.get-next-version.outputs.new-release-version }}
@@ -173,7 +168,7 @@ jobs:
         uses: cycjimmy/semantic-release-action@v4
         with:
             extra_plugins: |
-              semantic-release-cargo@2
+              @semantic-release-cargo/semantic-release-cargo
               @semantic-release/git
             dry_run: true
         env:
