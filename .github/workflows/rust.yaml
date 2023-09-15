@@ -32,6 +32,7 @@ jobs:
           node-version: lts/*
           check-latest: true
           cache: npm
+          cache-dependency-path: "**/Cargo.toml"
 
       - name: Cache npm dependencies
         uses: actions/cache@v3
