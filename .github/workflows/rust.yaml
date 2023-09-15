@@ -18,8 +18,36 @@ env:
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
 jobs:
+  node-setup:
+    runs-on: ${{ matrix.rust_os.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rust_os:
+          - { rust: 1.72.0, os: ubuntu-20.04 }
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: lts/*
+          check-latest: true
+          # cache: npm
+          # cache-dependency-path: "**/Cargo.toml"
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        id: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm install @semantic-release-cargo/semantic-release-cargo
+
   # Save next release version as GitHub Actions outputs
   get-next-version:
+    needs: node-setup
     uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@v4
     permissions:
       contents: write
@@ -34,9 +62,6 @@ jobs:
       matrix:
         rust_os:
           - { rust: 1.72.0, os: ubuntu-20.04 }
-          - { rust: stable, os: ubuntu-latest }
-          - { rust: beta, os: ubuntu-latest }
-          - { rust: nightly, os: ubuntu-latest }
 
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
@@ -79,9 +104,6 @@ jobs:
       matrix:
         rust_os:
           - { rust: 1.72.0, os: ubuntu-20.04 }
-          - { rust: stable, os: ubuntu-latest }
-          - { rust: beta, os: ubuntu-latest }
-          - { rust: nightly, os: ubuntu-latest }
 
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
@@ -109,9 +131,6 @@ jobs:
       matrix:
         rust_os:
           - { rust: 1.72.0, os: ubuntu-20.04 }
-          - { rust: stable, os: ubuntu-latest }
-          - { rust: beta, os: ubuntu-latest }
-          - { rust: nightly, os: ubuntu-latest }
 
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
@@ -136,9 +155,6 @@ jobs:
       matrix:
         rust_os:
           - { rust: 1.72.0, os: ubuntu-20.04 }
-          - { rust: stable, os: ubuntu-latest }
-          - { rust: beta, os: ubuntu-latest }
-          - { rust: nightly, os: ubuntu-latest }
 
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
@@ -180,7 +196,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - get-next-version
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout
