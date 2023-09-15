@@ -31,15 +31,15 @@ jobs:
         with:
           node-version: lts/*
           check-latest: true
-          cache: npm
-          cache-dependency-path: "**/Cargo.toml"
+          # cache: npm
+          # cache-dependency-path: "**/Cargo.toml"
 
       - name: Cache npm dependencies
         uses: actions/cache@v3
         id: cache-node-modules
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('Cargo.toml') }}
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
