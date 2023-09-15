@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/PromH/codr/compare/1.0.0...1.0.1) (2023-09-15)
+
+
+### Bug Fixes
+
+* update token and retrigger release ([f50e2b0](https://github.com/PromH/codr/commit/f50e2b0659f1343c0d3d6a253f6021f602abf51c))
+
 # 1.0.0 (2023-09-15)
 
 
