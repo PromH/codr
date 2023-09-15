@@ -6,9 +6,9 @@ plugins:
   - "@semantic-release/release-notes-generator"
   - - "@semantic-release/changelog"
   - - "@semantic-release/exec"
-    - verifyConditionsCmd: "./semantic-release-cargo verify-conditions"
-      prepareCmd: "./semantic-release-cargo prepare ${nextRelease.version}"
-      publishCmd: "./semantic-release-cargo publish"
+    - verifyConditionsCmd: "semantic-release-cargo verify-conditions"
+      prepareCmd: "semantic-release-cargo prepare ${nextRelease.version}"
+      publishCmd: "semantic-release-cargo publish"
   - - "@semantic-release/git"
     - assets: ["CHANGELOG.md", "package.json", "**/Cargo.toml", "Cargo.lock"]
   - "@semantic-release/github"

@@ -240,4 +240,3 @@ jobs:
               @semantic-release/exec
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_PUBLISH_KEY }}
-          
