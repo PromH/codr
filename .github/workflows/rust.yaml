@@ -18,14 +18,8 @@ env:
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
 jobs:
-  # Save next release version as GitHub Actions outputs
-  get-next-version:
-    # The type of runner that the job will run on
+  node-setup:
     runs-on: ${{ matrix.rust_os.os }}
-
-    permissions:
-      contents: write
-
     steps:
       - name: Setup Node
         uses: actions/setup-node@v3
@@ -45,8 +39,12 @@ jobs:
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm install @semantic-release-cargo/semantic-release-cargo
 
-      - name: Get next version
-        uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@v4
+  # Save next release version as GitHub Actions outputs
+  get-next-version:
+    needs: node-setup
+    uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@v4
+    permissions:
+      contents: write
 
   # Setups up the rest of the jobs with tools
   setup:
