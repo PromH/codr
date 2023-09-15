@@ -1,13 +1,15 @@
 ---
 branches: ["main"]
-preset: "cargo"
 tagFormat: "${version}"
 plugins:
   - "@semantic-release/commit-analyzer"
   - "@semantic-release/release-notes-generator"
   - - "@semantic-release/changelog"
-    - changelogFile: CHANGELOG.md
+  - - "@semantic-release/exec"
+    - verifyConditionsCmd: "./semantic-release-cargo verify-conditions"
+      prepareCmd: "./semantic-release-cargo prepare ${nextRelease.version}"
+      publishCmd: "./semantic-release-cargo publish"
   - - "@semantic-release/git"
-    - assets: ["CHANGELOG.md", "package.json", "**/Cargo.toml"]
+    - assets: ["CHANGELOG.md", "package.json", "**/Cargo.toml", "Cargo.lock"]
   - "@semantic-release/github"
   - "@semantic-release-cargo/semantic-release-cargo"
