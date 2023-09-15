@@ -45,7 +45,8 @@ jobs:
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm install @semantic-release-cargo/semantic-release-cargo
 
-      - uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@v4
+      - name: Get next version
+        uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@v4
 
   # Setups up the rest of the jobs with tools
   setup:
