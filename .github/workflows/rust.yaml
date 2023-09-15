@@ -191,6 +191,7 @@ jobs:
             extra_plugins: |
               @semantic-release-cargo/semantic-release-cargo
               @semantic-release/git
+              @semantic-release/exec
             dry_run: true
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_PUBLISH_KEY }}
@@ -222,5 +223,6 @@ jobs:
             extra_plugins: |
               @semantic-release-cargo/semantic-release-cargo
               @semantic-release/git
+              @semantic-release/exec
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_PUBLISH_KEY }}
