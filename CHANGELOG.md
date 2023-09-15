@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/PromH/codr/compare/1.0.1...1.0.2) (2023-09-15)
+
+
+### Bug Fixes
+
+* update cargo.toml files to help with semantic-release-publish ([7e3784f](https://github.com/PromH/codr/commit/7e3784fb5e42b0748393b84b4e83ff23634a7f9b))
+
 ## [1.0.1](https://github.com/PromH/codr/compare/1.0.0...1.0.1) (2023-09-15)
 
 
