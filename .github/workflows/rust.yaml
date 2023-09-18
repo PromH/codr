@@ -216,6 +216,7 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.CODR_WORKFLOW_TOKEN }}
       GH_TOKEN: ${{ secrets.CODR_WORKFLOW_TOKEN }}
+      ACTIONS_RUNNER_DEBUG: true
 
     permissions:
       contents: write
