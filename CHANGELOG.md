@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/PromH/codr/compare/1.0.3...1.0.4) (2023-09-18)
+
+
+### Bug Fixes
+
+* turn on debug logs for semantic-release job ([2025112](https://github.com/PromH/codr/commit/2025112cbcd372b6e8d08b8136b8bac8ac662dee))
+
 ## [1.0.3](https://github.com/PromH/codr/compare/1.0.2...1.0.3) (2023-09-18)
 
 
