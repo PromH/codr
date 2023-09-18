@@ -221,7 +221,7 @@ checksum = "cd7cc57abe963c6d3b9d8be5b06ba7c8957a930305ca90304f24ef040aa6f961"
 
 [[package]]
 name = "codr"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "clap",
  "confy",
@@ -882,7 +882,7 @@ checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 
 [[package]]
 name = "onedrive"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "bytes",
  "chrono",

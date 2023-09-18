@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/PromH/codr/compare/1.0.2...1.0.3) (2023-09-18)
+
+
+### Bug Fixes
+
+* add package.json files ([a9b2ef3](https://github.com/PromH/codr/commit/a9b2ef37a2a296daff97921f7712225f6e98f4a9))
+
 ## [1.0.2](https://github.com/PromH/codr/compare/1.0.1...1.0.2) (2023-09-15)
 
 
