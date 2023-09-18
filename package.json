@@ -1,0 +1,15 @@
+{
+  "name": "codr",
+  "version": "1.0.2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PromH/codr.git"
+  },
+  "author": "Harvey Prom <harvey_prom@hotmail.com>",
+  "license": "MIT",
+  "workspaces": [
+    "codr",
+    "onedrive"
+  ],
+  "homepage": "https://github.com/PromH/codr/blob/main/README.md"
+}
