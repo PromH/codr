@@ -1,11 +1,14 @@
 [package]
 name = "onedrive"
 author = "Harvey S Prom <harvey_prom@hotmail.com>"
+description = "A library package for interacting with OneDrive"
 about = "A library package for interacting with OneDrive"
 version = "1.0.4"
 edition = "2021"
 license = "MIT"
+readme = "./README.md"
 repository = "https://github.com/PromH/codr"
+homepage = "https://github.com/PromH/codr"
 
 [lib]
 name = "onedrive"

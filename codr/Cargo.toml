@@ -1,11 +1,14 @@
 [package]
 name = "codr"
 author = "Harvey S Prom <harvey_prom@hotmail.com>"
+description = "A CLI tool for interacting with OneDrive."
 about = "A CLI tool for interacting with OneDrive."
 version = "1.0.4"
-repository = "https://github.com/PromH/codr"
 edition = "2021"
 license = "MIT"
+readme = "./README.md"
+repository = "https://github.com/PromH/codr"
+homepage = "https://github.com/PromH/codr"
 categories = ["command-line-utilities", "development-tools::build-utils"]
 
 [[bin]]
