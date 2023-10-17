@@ -1,3 +1,11 @@
+## [1.0.5](https://github.com/PromH/codr/compare/1.0.4...1.0.5) (2023-10-17)
+
+
+### Bug Fixes
+
+* change member order of root cargo.toml ([6496364](https://github.com/PromH/codr/commit/6496364c0a06e55d0eb0e62fe2385bf61ff3dcb4))
+* update toml and readme files ([ca8b1a3](https://github.com/PromH/codr/commit/ca8b1a33f11eb93f84f744fe45ca5c1a7f308056))
+
 ## [1.0.4](https://github.com/PromH/codr/compare/1.0.3...1.0.4) (2023-09-18)
 
 
