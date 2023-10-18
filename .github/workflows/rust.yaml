@@ -202,6 +202,7 @@ jobs:
             extra_plugins: |
               @semantic-release-cargo/semantic-release-cargo
               @semantic-release/git
+              @semantic-release/github
               @semantic-release/exec
             dry_run: true
 
@@ -243,4 +244,5 @@ jobs:
             extra_plugins: |
               @semantic-release-cargo/semantic-release-cargo
               @semantic-release/git
+              @semantic-release/github
               @semantic-release/exec
