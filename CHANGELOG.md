@@ -1,3 +1,10 @@
+## [1.0.7](https://github.com/PromH/codr/compare/1.0.6...1.0.7) (2023-10-18)
+
+
+### Bug Fixes
+
+* update docs to add install instructions ([bb4a853](https://github.com/PromH/codr/commit/bb4a853ec02a989106865d12f07fbcbadbb16947))
+
 ## [1.0.6](https://github.com/PromH/codr/compare/1.0.5...1.0.6) (2023-10-18)
 
 
