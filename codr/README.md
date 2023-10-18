@@ -51,6 +51,13 @@ codr get drive-item-children path/to/folder
 codr create sharing-links path/to/folder/file embed
 ```
 
+#### Example Config File Contents
+
+```yaml
+msgraph_client_id: insert-client-id-here
+msgraph_client_secret: insert-client-secret-here
+```
+
 ## Notes
 > [!WARNING]
 > This is my first Rust project so use with caution...
