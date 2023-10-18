@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/PromH/codr/compare/1.0.7...1.1.0) (2023-10-18)
+
+
+### Features
+
+* start to prepare for github release artifacts and trigger major release to mark pipelines almost working ([f0d8ea7](https://github.com/PromH/codr/commit/f0d8ea76057dd9c4f4eb2b8cd6adf29bc48d7b53))
+
 ## [1.0.7](https://github.com/PromH/codr/compare/1.0.6...1.0.7) (2023-10-18)
 
 
