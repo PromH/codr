@@ -1,3 +1,10 @@
+## [1.0.6](https://github.com/PromH/codr/compare/1.0.5...1.0.6) (2023-10-18)
+
+
+### Bug Fixes
+
+* update docs in readme and attempt to trigger release again ([abb62b2](https://github.com/PromH/codr/commit/abb62b2d7ac40139e302e92f28e52c5495f85bb4))
+
 ## [1.0.5](https://github.com/PromH/codr/compare/1.0.4...1.0.5) (2023-10-17)
 
 

@@ -3,7 +3,7 @@ name = "codr"
 author = "Harvey S Prom <harvey_prom@hotmail.com>"
 description = "A CLI tool for interacting with OneDrive."
 about = "A CLI tool for interacting with OneDrive."
-version = "1.0.5"
+version = "1.0.6"
 edition = "2021"
 license = "MIT"
 readme = "./README.md"
@@ -18,7 +18,7 @@ path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-onedrive = { path = "../onedrive" , version = "1.0.5" }
+onedrive = { path = "../onedrive" , version = "1.0.6" }
 clap = { version = "4.0", features = ["derive"] }
 log = "0.4"
 fern = "0.6"
