@@ -23,6 +23,12 @@ The following steps outline how these credentials can be obtained.
 
 ### Example Usage
 
+#### Adding
+
+```sh
+cargo add onedrive
+```
+
 #### Obtaining an MSGraph Token
 
 ```rs

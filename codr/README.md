@@ -8,6 +8,13 @@
 
 Once the credentials have been obtained, they can then be supplied to `codr` through a variety of means (see the [Example Commands](#example-commands)).
 
+### Installing
+
+```sh
+# Via Cargo
+cargo install codr
+```
+
 ### How to obtain Microsoft OAuth2 Credentials
 
 The following steps outline how these credentials can be obtained.
