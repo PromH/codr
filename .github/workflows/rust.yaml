@@ -18,7 +18,6 @@ env:
   GH_TOKEN: ${{ secrets.CODR_WORKFLOW_TOKEN }}
   CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_PUBLISH_KEY }}
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
-  DEBUG: napi:*
   RUST_BACKTRACE: 1
 
 jobs:
@@ -347,16 +346,6 @@ jobs:
 
       - name: ls artifacts
         run: ls -R ./artifacts
-
-      - name: Prepare native artifacts
-        run: |
-          mkdir napi/
-          mv artifacts/bindings-aarch64-apple-darwin/codr.darwin-arm64.node napi/
-          mv artifacts/bindings-x86_64-apple-darwin/codr.darwin-x64.node napi/
-          mv artifacts/bindings-x86_64-unknown-linux-gnu/codr.linux-x64-gnu.node napi/
-
-      - name: ls napi
-        run: ls -R ./napi
 
       - name: Prepare GitHub Release artifacts
         run: |
