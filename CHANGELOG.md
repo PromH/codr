@@ -1,3 +1,13 @@
+## [1.1.1](https://github.com/PromH/codr/compare/1.1.0...1.1.1) (2023-10-21)
+
+
+### Bug Fixes
+
+* disable aarch64-unknown-linux-gnu ([eacddce](https://github.com/PromH/codr/commit/eacddce096c7bb5fb55704df9980c6880ea2e929))
+* remove napi stuff ([668b897](https://github.com/PromH/codr/commit/668b8970e4f14e243c1900cf1fac5ca1a73bd347))
+* uncomment assets in .releaserc.yaml ([08fc3b1](https://github.com/PromH/codr/commit/08fc3b167d4bccf03d8314b05e245bebbd4770ca))
+* update pipelines ([1fb4367](https://github.com/PromH/codr/commit/1fb43676b8a013668bd28269c233b6119f8db0a6))
+
 # [1.1.0](https://github.com/PromH/codr/compare/1.0.7...1.1.0) (2023-10-18)
 
 
