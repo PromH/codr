@@ -167,6 +167,111 @@ jobs:
       - name: Build
         run: cargo build --verbose
 
+  # Compile native CLI binary
+  build-cli:
+    name: Build CLI ${{ matrix.build.target }}
+    if: needs.get-next-version.outputs.new-release-published == 'true'
+    runs-on: ${{ matrix.build.os }}
+    needs:
+      - get-next-version
+    env:
+      CARGO: cargo
+
+    strategy:
+      matrix:
+        build:
+          # alphabatized by target
+          - os: macOS-latest
+            target: aarch64-apple-darwin
+            cross: true
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            cross: true
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            cross: true
+          - os: ubuntu-latest
+            target: i686-unknown-linux-gnu
+            cross: true
+          - os: ubuntu-latest
+            target: i686-unknown-linux-musl
+            cross: true
+          - os: macOS-latest
+            target: x86_64-apple-darwin
+            cross: false
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            cross: false
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            cross: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build inputs
+        if: runner.os == 'Linux' && !matrix.build.cross
+        run: sudo apt install musl-tools
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        id: rust-toolchain
+        with:
+          toolchain: stable
+          target: ${{ matrix.build.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v3
+        id: cache-cargo
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install semantic-release-cargo
+        uses: taiki-e/install-action@v2
+        with:
+          tool: semantic-release-cargo@2
+
+      - name: Prepare semantic-release for Rust
+        run: semantic-release-cargo prepare ${{ needs.get-next-version.outputs.new-release-version }}
+
+      - name: Install cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Configure cross
+        if: matrix.build.cross
+        run: echo "CARGO=cross" >> "$GITHUB_ENV"
+
+      - name: Compile release binary
+        run: ${{ env.CARGO }} build --bin codr --release --target ${{ matrix.build.target }} --verbose
+
+      - name: Create release archive
+        run: |
+          mkdir dist
+          cp target/${{ matrix.build.target }}/release/codr dist/codr-${{ matrix.build.target }}
+
+      - name: Create binary checksum
+        run: shasum --algorithm 256 --binary codr-${{ matrix.build.target }} | tee codr-${{ matrix.build.target }}-SHA256SUM.txt
+        working-directory: ./dist
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.build.target }}
+          path: |
+            dist/codr-${{ matrix.build.target }}
+            dist/codr-${{ matrix.build.target }}-SHA256SUM.txt
+          if-no-files-found: error
+          retention-days: 1
+
   # Dry run of semantic-release
   semantic-release-dry-run:
     # The type of runner that the job will run on
@@ -213,6 +318,7 @@ jobs:
     needs:
       - get-next-version
       - semantic-release-dry-run
+      - build-cli
     if: github.ref == 'refs/heads/main'
 
     env:
@@ -232,6 +338,39 @@ jobs:
         with:
           tool: semantic-release-cargo@2
 
+      - name: Download release artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: ls artifacts
+        run: ls -R ./artifacts
+
+      - name: Prepare native artifacts
+        run: |
+          mkdir napi/
+          mv artifacts/bindings-aarch64-apple-darwin/codr.darwin-arm64.node napi/
+          mv artifacts/bindings-x86_64-apple-darwin/codr.darwin-x64.node napi/
+          mv artifacts/bindings-x86_64-unknown-linux-gnu/codr.linux-x64-gnu.node napi/
+
+      - name: ls napi
+        run: ls -R ./napi
+
+      - name: Prepare GitHub Release artifacts
+        run: |
+          mkdir dist/
+          mv artifacts/aarch64-apple-darwin dist/
+          mv artifacts/aarch64-unknown-linux-gnu dist/
+          mv artifacts/aarch64-unknown-linux-musl dist/
+          mv artifacts/i686-unknown-linux-gnu dist/
+          mv artifacts/i686-unknown-linux-musl dist/
+          mv artifacts/x86_64-apple-darwin dist/
+          mv artifacts/x86_64-unknown-linux-gnu dist/
+          mv artifacts/x86_64-unknown-linux-musl dist/
+
+      - name: Combine checksums
+        run: cat dist/**/codr-*-SHA256SUM.txt | tee dist/SHA256SUMS.txt
+
       - name: Prepare semantic-release for Rust
         if: needs.get-next-version.outputs.new-release-published == 'true'
         run: semantic-release-cargo prepare ${{ needs.get-next-version.outputs.new-release-version }}
@@ -240,6 +379,7 @@ jobs:
         uses: cycjimmy/semantic-release-action@v4
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CODR_WORKFLOW_TOKEN }}
         with:
             extra_plugins: |
               @semantic-release-cargo/semantic-release-cargo
