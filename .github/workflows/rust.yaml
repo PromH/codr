@@ -146,7 +146,7 @@ jobs:
   # Dry run of semantic-release
   semantic-release-dry-run:
     # The type of runner that the job will run on
-    runs-on: ${{ matrix.rust_os.os }}
+    runs-on: ubuntu-latest
     needs:
       - get-next-version
       - setup
