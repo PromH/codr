@@ -52,9 +52,6 @@ jobs:
           override: true
           components: clippy, rustfmt
 
-      - name: Download semantic-release-rust
-        run: cargo install semantic-release-rust --version 1.0.0-alpha.8
-
       - name: Build (to get dependencies)
         run: cargo build --verbose
 
@@ -146,10 +143,16 @@ jobs:
   # Dry run of semantic-release
   semantic-release-dry-run:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.rust_os.os }}
     needs:
       - get-next-version
       - setup
+
+    strategy:
+      fail-fast: false
+      matrix:
+        rust_os:
+          - { rust: 1.72.0, os: ubuntu-20.04 }
 
     env:
       GITHUB_TOKEN: ${{ secrets.CODR_WORKFLOW_TOKEN }}
@@ -161,6 +164,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Download semantic-release-rust
+        run: cargo install semantic-release-rust --version 1.0.0-alpha.8
 
       - name: Prepare semantic-release for Rust
         if: needs.get-next-version.outputs.new-release-published == 'true'
@@ -180,11 +186,17 @@ jobs:
   # --- Jobs that only on successful pushes to main ---
   semantic-release:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.rust_os.os }}
     needs:
       - get-next-version
       - semantic-release-dry-run
     if: github.ref == 'refs/heads/main'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        rust_os:
+          - { rust: 1.72.0, os: ubuntu-20.04 }
 
     env:
       GITHUB_TOKEN: ${{ secrets.CODR_WORKFLOW_TOKEN }}
@@ -197,6 +209,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Download semantic-release-rust
+        run: cargo install semantic-release-rust --version 1.0.0-alpha.8
 
       - name: Prepare semantic-release for Rust
         if: needs.get-next-version.outputs.new-release-published == 'true'
