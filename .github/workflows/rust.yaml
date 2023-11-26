@@ -50,7 +50,10 @@ jobs:
         with:
           toolchain: ${{ matrix.rust_os.rust }}
           override: true
-          components: clippy, rustfmt, semantic-release-rust
+          components: clippy, rustfmt
+
+      - name: Download semantic-release-rust
+        run: cargo install semantic-release-rust --version 1.0.0-alpha.8
 
       - name: Build (to get dependencies)
         run: cargo build --verbose
