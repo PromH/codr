@@ -31,4 +31,3 @@ plugins:
         label: "aarch64-apple-darwin"
       - path: "dist/SHA256SUMS.txt"
         label: "SHA256SUMS.txt"
-  - "@semantic-release-cargo/semantic-release-cargo"
