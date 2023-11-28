@@ -1,3 +1,11 @@
+## [1.1.2](https://github.com/PromH/codr/compare/1.1.1...1.1.2) (2023-11-28)
+
+
+### Bug Fixes
+
+* change to use semantic-release-rust ([f977401](https://github.com/PromH/codr/commit/f977401323271573d7adf0e9a0fe35c802890468))
+* revert back to semantic-release-cargo but with more debug logs ([0d8abd6](https://github.com/PromH/codr/commit/0d8abd6d0c8821ce1c185e57784df8ca07e7c774))
+
 ## [1.1.1](https://github.com/PromH/codr/compare/1.1.0...1.1.1) (2023-10-21)
 
 
