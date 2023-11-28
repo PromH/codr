@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/PromH/codr/compare/1.1.2...1.1.3) (2023-11-28)
+
+
+### Bug Fixes
+
+* delete extra semantic-release-cargo step ([dc3f2da](https://github.com/PromH/codr/commit/dc3f2da2a7dc400c9e9fcd29d2d148f31e3639bc))
+
 ## [1.1.2](https://github.com/PromH/codr/compare/1.1.1...1.1.2) (2023-11-28)
 
 
