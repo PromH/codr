@@ -1,7 +1,8 @@
-use onedrive::{GraphTokenObtainer, TokenObtainer};
+use onedrive::{GraphTokenObtainer, TokenObtainer, GENERATE_MS_OAUTH2_CREDENTIALS_INSTRUCTIONS};
 use std::env;
 use std::time::SystemTime;
 
+/// Sets up the logger for the application
 fn setup_logger(log_level: log::LevelFilter) -> Result<(), fern::InitError> {
     fern::Dispatch::new()
         .format(|out, message, record| {
@@ -25,6 +26,9 @@ fn setup_logger(log_level: log::LevelFilter) -> Result<(), fern::InitError> {
 fn main() {
     setup_logger(log::LevelFilter::Info).unwrap();
 
+    println!("{}", GENERATE_MS_OAUTH2_CREDENTIALS_INSTRUCTIONS);
+
+    // Setting up our struct that will obtain the msgraph token
     let token_obtainer = GraphTokenObtainer {
         client_id: env::var("MSGRAPH_CLIENT_ID")
             .expect("Missing the MSGRAPH_CLIENT_ID environment variable."),
@@ -39,6 +43,8 @@ fn main() {
         redirect_endpoint: Some("/redirect".to_string()),
         redirect_port: Some(8080),
     };
+
+    // Actually getting the token and printing it out
     println!(
         "Token={:?}",
         token_obtainer.get_token().unwrap().access_token()

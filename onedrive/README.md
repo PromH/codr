@@ -29,6 +29,12 @@ The following steps outline how these credentials can be obtained.
 cargo add onedrive
 ```
 
+### Running
+
+```sh
+MSGRAPH_CLIENT_ID=<MSGRAPH_CLIENT_ID> MSGRAPH_CLIENT_SECRET=<MSGRAPH_CLIENT_SECRET> cargo run -p onedrive
+```
+
 #### Obtaining an MSGraph Token
 
 ```rs
