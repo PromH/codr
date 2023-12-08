@@ -826,6 +826,7 @@ pub trait OneDriver {
 }
 
 /// Simple HTTP Response Struct
+#[derive(Clone)]
 pub struct HttpResponse {
     /// The status of the HTTP response
     pub status: String,
@@ -836,7 +837,7 @@ pub struct HttpResponse {
 }
 
 /// HTTP Error Struct
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct HttpError(String);
 
 /// Trait that describes HTTP related operations that can be performed
@@ -853,6 +854,7 @@ pub trait Httper {
 }
 
 /// Struct that implements Httper
+#[derive(Clone)]
 pub struct HttpClient {
     pub client: blocking::Client,
 }
@@ -1168,5 +1170,527 @@ impl OneDriver for OneDriveClient {
         }
 
         Ok(links)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+
+    use crate::{HttpResponse, HttpError, Httper, OneDriveClient, OneDriver, OneDriveError, DriveItem, IdentitySet, Identity, ItemReference, SharePointIds, Audio, Deleted, File, Hashes, FileSystemInfo, Folder, FolderView, Image, GeoCoordinates, Malware, Package, Photo, PublicationFacet, RemoteItem, Shared, SpecialFolder, Root, SearchResult, Video, API_BASE_URL};
+
+    #[derive(Clone)]
+    /// Struct to store received function params
+    struct FakeHttperArgsReceived {
+        pub urls_received: Vec<String>,
+        pub all_headers_received: Vec<Vec<(String, String)>>,
+        pub bodies_received: Vec<String>,
+    }
+
+    impl FakeHttperArgsReceived {
+        /// constructor
+        fn new() -> Self {
+            FakeHttperArgsReceived {
+                urls_received: vec![],
+                all_headers_received: vec![],
+                bodies_received: vec![],
+            }
+        }
+        /// Adds a given url to the urls_received vector
+        fn add_url_received(&mut self, url: String) {
+            self.urls_received.push(url)
+        }
+        /// Adds given headers to the all_headers_received vector
+        fn add_headers_received(&mut self, headers: Vec<(String, String)>) {
+            self.all_headers_received.push(headers)
+        }
+        /// Adds a given body to the bodies_received vector
+        fn add_body_received(&mut self, body: String) {
+            self.bodies_received.push(body)
+        }
+    }
+
+    #[derive(Clone)]
+    /// Fake implementation of Httper
+    struct FakeHttper {
+        pub args_received: RefCell<FakeHttperArgsReceived>,
+        pub get_result: Result<HttpResponse, HttpError>,
+        pub post_result: Result<HttpResponse, HttpError>,
+    }
+
+    impl FakeHttper {
+        fn get_copy_of_args_received(self) -> FakeHttperArgsReceived {
+            self.args_received.borrow().clone()
+        }
+    }
+
+    impl Httper for FakeHttper {
+        fn get(&self, url: String, headers: Vec<(String, String)>) -> Result<HttpResponse, HttpError> {
+            self.args_received.borrow_mut().add_url_received(url);
+            self.args_received.borrow_mut().add_headers_received(headers);
+
+            match &self.get_result {
+                Ok(resp) => Ok(resp.clone()),
+                Err(err) => Err(err.clone())
+            }
+        }
+        fn post(
+                &self,
+                url: String,
+                body: String,
+                headers: Vec<(String, String)>,
+            ) -> Result<HttpResponse, HttpError> {
+                self.args_received.borrow_mut().add_url_received(url);
+                self.args_received.borrow_mut().add_headers_received(headers);
+                self.args_received.borrow_mut().add_body_received(body);
+
+                match &self.post_result {
+                    Ok(resp) => Ok(resp.clone()),
+                    Err(err) => Err(err.clone())
+                }
+        }
+    }
+
+    /// Provides a fully populated DriveItem
+    fn get_fully_populated_driveitem() -> DriveItem {
+        DriveItem{
+            id: String::from("my-id"),
+            created_by: IdentitySet{
+                application: Some(Identity{
+                    display_name: Some(String::from("created-by-application-display-name")),
+                    id: Some(String::from("created-by-application-id")),
+                }),
+                device: Some(Identity{
+                    display_name: Some(String::from("created-by-device-display-name")),
+                    id: Some(String::from("created-by-device-id")),
+                }),
+                group: Some(Identity{
+                    display_name: Some(String::from("created-by-group-display-name")),
+                    id: Some(String::from("created-by-group-id")),
+                }),
+                user: Some(Identity{
+                    display_name: Some(String::from("created-by-user-display-name")),
+                    id: Some(String::from("created-by-user-id")),
+                }),
+            },
+            created_date_time: String::from("created_date_time"),
+            description: Some(String::from("description")),
+            e_tag: String::from("e_tag"),
+            last_modified_by: IdentitySet{
+                application: Some(Identity{
+                    display_name: Some(String::from("last-modified-by-application-display-name")),
+                    id: Some(String::from("last-modified-by-application-id")),
+                }),
+                device: Some(Identity{
+                    display_name: Some(String::from("last-modified-by-device-display-name")),
+                    id: Some(String::from("last-modified-by-device-id")),
+                }),
+                group: Some(Identity{
+                    display_name: Some(String::from("last-modified-by-group-display-name")),
+                    id: Some(String::from("last-modified-by-group-id")),
+                }),
+                user: Some(Identity{
+                    display_name: Some(String::from("last-modified-by-user-display-name")),
+                    id: Some(String::from("last-modified-by-user-id")),
+                }),
+            },
+            last_modified_date_time: String::from("last-modified-date-time"),
+            name: String::from("name"),
+            parent_reference: ItemReference{
+                drive_id: String::from("parent-reference-drive-id"),
+                drive_type: String::from("parent-reference-drive-type"),
+                id: String::from("parent-reference-id"),
+                list_id: Some(String::from("parent-reference-list-id")),
+                name: Some(String::from("parent-reference-name")),
+                path: String::from("parent-reference-path"),
+                share_id: Some(String::from("parent-reference-share-id")),
+                sharepoint_ids: Some(SharePointIds{
+                    list_id: String::from("parent-reference-sharepoint-ids-list-id"),
+                    list_item_id:  String::from("parent-reference-sharepoint-ids-list-item-id"),
+                    list_item_unique_id:  String::from("parent-reference-sharepoint-ids-list-item-unique-id"),
+                    site_id:  String::from("parent-reference-sharepoint-ids-site-id"),
+                    site_url:  String::from("parent-reference-sharepoint-ids-site-url"),
+                    tenant_id:  String::from("parent-reference-sharepoint-ids-tenant-id"),
+                    web_id:  String::from("parent-reference-sharepoint-ids-web-id"),
+                }),
+                site_id: Some(String::from("parent-reference-site-id")),
+            },
+            web_url: String::from("web-url"),
+            audio: Some(Audio{
+                album: String::from("audio-album"),
+                album_artist: String::from("audio-album-artist"),
+                artist: String::from("audio-artist"),
+                bitrate: 1,
+                composers: String::from("audio-composers"),
+                copyright: String::from("audio-copyright"),
+                disc: 2,
+                disc_count: 3,
+                duration: 4,
+                genre: String::from("audio-genre"),
+                has_drm: true,
+                is_variable_bitrate: false,
+                title: String::from("audio-title"),
+                track: 5,
+                track_count: 6,
+                year: 7,
+            }),
+            c_tag: String::from("c-tag"),
+            deleted: Some(Deleted{
+                state: String::from("deleted-state"),
+            }),
+            file: Some(File{
+                hashes: Hashes{
+                    crc32_hash: Some(String::from("file-hashes-crc32-hash")),
+                    sha1_hash: Some(String::from("file-hashes-sha1-hash")),
+                    quick_xor_hash: Some(String::from("file-hashes-quick-xor-hash")),
+                },
+                mime_type: String::from("file-mime-type"),
+                processing_metadata: Some(true),
+            }),
+            file_system_info: Some(FileSystemInfo{
+                created_date_time: String::from("file-system-info-created-date-time"),
+                last_accessed_date_time: Some(String::from("file-system-info-last-accessed-date-time")),
+                last_modified_date_time: String::from("last-modified-date-time"),
+            }),
+            folder: Some(Folder{
+                child_count: 8,
+                view: FolderView{
+                    sort_by: String::from("folder-view-sort-by"),
+                    sort_order: String::from("folder-view-sort-order"),
+                    view_type: String::from("folder-view-view-type"),
+                },
+            }),
+            image: Some(Image{
+                height: Some(9),
+                width: Some(10),
+            }),
+            location: Some(GeoCoordinates{
+                altitude: Some(11.0),
+                latitude: Some(12.0),
+                longitude: Some(13.0),
+            }),
+            malware: Some(Malware{}),
+            package: Some(Package{
+                package_type: String::from("package-package-type"),
+            }),
+            photo: Some(Photo{
+                camera_make: Some(String::from("photo-camera-make")),
+                camera_model: Some(String::from("photo-camera-model")),
+                exposure_denominator: Some(14.0),
+                exposure_numerator: Some(15.0),
+                f_number: Some(16.0),
+                focal_length: Some(17.0),
+                iso: Some(18),
+                taken_date_time: Some(String::from("photo-taken-date-time")),
+            }),
+            publication: Some(PublicationFacet{
+                level: String::from("publication-level"),
+                version_id: String::from("publication-version-id"),
+            }),
+            remote_item: Some(RemoteItem{
+                id: String::from("remote-item-my-id"),
+                created_by: IdentitySet{
+                    application: Some(Identity{
+                        display_name: Some(String::from("remote-item-created-by-application-display-name")),
+                        id: Some(String::from("remote-item-created-by-application-id")),
+                    }),
+                    device: Some(Identity{
+                        display_name: Some(String::from("remote-item-created-by-device-display-name")),
+                        id: Some(String::from("remote-item-created-by-device-id")),
+                    }),
+                    group: Some(Identity{
+                        display_name: Some(String::from("remote-item-created-by-group-display-name")),
+                        id: Some(String::from("remote-item-created-by-group-id")),
+                    }),
+                    user: Some(Identity{
+                        display_name: Some(String::from("remote-item-created-by-user-display-name")),
+                        id: Some(String::from("remote-item-created-by-user-id")),
+                    }),
+                },
+                created_date_time: String::from("remote-item-created_date_time"),
+                file: Some(File{
+                    hashes: Hashes{
+                        crc32_hash: Some(String::from("remote-item-file-hashes-crc32-hash")),
+                        sha1_hash: Some(String::from("remote-item-file-hashes-sha1-hash")),
+                        quick_xor_hash: Some(String::from("remote-item-file-hashes-quick-xor-hash")),
+                    },
+                    mime_type: String::from("remote-item-file-mime-type"),
+                    processing_metadata: Some(true),
+                }),
+                file_system_info: Some(FileSystemInfo{
+                    created_date_time: String::from("remote-item-file-system-info-created-date-time"),
+                    last_accessed_date_time: Some(String::from("remote-item-file-system-info-last-accessed-date-time")),
+                    last_modified_date_time: String::from("remote-item-last-modified-date-time"),
+                }),
+                folder: Some(Folder{
+                    child_count: 19,
+                    view: FolderView{
+                        sort_by: String::from("remote-item-folder-view-sort-by"),
+                        sort_order: String::from("remote-item-folder-view-sort-order"),
+                        view_type: String::from("remote-item-folder-view-view-type"),
+                    },
+                }),
+                last_modified_by: IdentitySet{
+                    application: Some(Identity{
+                        display_name: Some(String::from("remote-item-last-modified-by-application-display-name")),
+                        id: Some(String::from("remote-item-last-modified-by-application-id")),
+                    }),
+                    device: Some(Identity{
+                        display_name: Some(String::from("remote-item-last-modified-by-device-display-name")),
+                        id: Some(String::from("remote-item-last-modified-by-device-id")),
+                    }),
+                    group: Some(Identity{
+                        display_name: Some(String::from("remote-item-last-modified-by-group-display-name")),
+                        id: Some(String::from("remote-item-last-modified-by-group-id")),
+                    }),
+                    user: Some(Identity{
+                        display_name: Some(String::from("remote-item-last-modified-by-user-display-name")),
+                        id: Some(String::from("remote-item-last-modified-by-user-id")),
+                    }),
+                },
+                last_modified_date_time: String::from("remote-item-last-modified-date-time"),
+                name: String::from("remote-item-name"),
+                package: Some(Package{
+                    package_type: String::from("remote-item-package-package-type"),
+                }),
+                parent_reference: ItemReference{
+                    drive_id: String::from("remote-item-parent-reference-drive-id"),
+                    drive_type: String::from("remote-item-parent-reference-drive-type"),
+                    id: String::from("remote-item-parent-reference-id"),
+                    list_id: Some(String::from("remote-item-parent-reference-list-id")),
+                    name: Some(String::from("remote-item-parent-reference-name")),
+                    path: String::from("remote-item-parent-reference-path"),
+                    share_id: Some(String::from("remote-item-parent-reference-share-id")),
+                    sharepoint_ids: Some(SharePointIds{
+                        list_id: String::from("remote-item-parent-reference-sharepoint-ids-list-id"),
+                        list_item_id:  String::from("remote-item-parent-reference-sharepoint-ids-list-item-id"),
+                        list_item_unique_id:  String::from("remote-item-parent-reference-sharepoint-ids-list-item-unique-id"),
+                        site_id:  String::from("remote-item-parent-reference-sharepoint-ids-site-id"),
+                        site_url:  String::from("remote-item-parent-reference-sharepoint-ids-site-url"),
+                        tenant_id:  String::from("remote-item-parent-reference-sharepoint-ids-tenant-id"),
+                        web_id:  String::from("remote-item-parent-reference-sharepoint-ids-web-id"),
+                    }),
+                    site_id: Some(String::from("remote-item-parent-reference-site-id")),
+                },
+                shared: Some(Shared{
+                    owner: Some(IdentitySet{
+                        application: Some(Identity{
+                            display_name: Some(String::from("remote-item-shared-owner-application-display-name")),
+                            id: Some(String::from("remote-item-shared-owner-application-id")),
+                        }),
+                        device: Some(Identity{
+                            display_name: Some(String::from("remote-item-shared-owner-device-display-name")),
+                            id: Some(String::from("remote-item-shared-owner-device-id")),
+                        }),
+                        group: Some(Identity{
+                            display_name: Some(String::from("remote-item-shared-owner-group-display-name")),
+                            id: Some(String::from("remote-item-shared-owner-group-id")),
+                        }),
+                        user: Some(Identity{
+                            display_name: Some(String::from("remote-item-shared-owner-user-display-name")),
+                            id: Some(String::from("remote-item-shared-owner-user-id")),
+                        }),
+                    }),
+                    scope: Some(String::from("remote-item-shared-scope")),
+                    shared_by: Some(IdentitySet{
+                        application: Some(Identity{
+                            display_name: Some(String::from("remote-item-shared-by-application-display-name")),
+                            id: Some(String::from("remote-item-shared-by-application-id")),
+                        }),
+                        device: Some(Identity{
+                            display_name: Some(String::from("remote-item-shared-by-device-display-name")),
+                            id: Some(String::from("remote-item-shared-by-device-id")),
+                        }),
+                        group: Some(Identity{
+                            display_name: Some(String::from("remote-item-shared-by-group-display-name")),
+                            id: Some(String::from("remote-item-shared-by-group-id")),
+                        }),
+                        user: Some(Identity{
+                            display_name: Some(String::from("remote-item-shared-by-user-display-name")),
+                            id: Some(String::from("remote-item-shared-by-user-id")),
+                        }),
+                    }),
+                    shared_date_time: Some(String::from("remote-item-shared-shared-date-time")),
+                }),
+                sharepoint_ids: SharePointIds{
+                    list_id: String::from("remote-item-sharepoint-ids-list-id"),
+                    list_item_id:  String::from("remote-item-sharepoint-ids-list-item-id"),
+                    list_item_unique_id:  String::from("remote-item-sharepoint-ids-list-item-unique-id"),
+                    site_id:  String::from("remote-item-sharepoint-ids-site-id"),
+                    site_url:  String::from("remote-item-sharepoint-ids-site-url"),
+                    tenant_id:  String::from("remote-item-sharepoint-ids-tenant-id"),
+                    web_id:  String::from("remote-item-sharepoint-ids-web-id"),
+                },
+                size: 20,
+                special_folder: Some(SpecialFolder{
+                    name: String::from("remote-item-special-folder-name"),
+                }),
+                web_dav_url: Some(String::from("remote-item-web-dav-url")),
+                web_url: String::from("remote-item-web-url"),
+            }),
+            root: Some(Root{}),
+            search_result: Some(SearchResult{
+                on_click_telemetry_url: String::from("search-result-on-click-telemetry-url"),
+            }),
+            shared: Some(Shared{
+                owner: Some(IdentitySet{
+                    application: Some(Identity{
+                        display_name: Some(String::from("shared-owner-application-display-name")),
+                        id: Some(String::from("shared-owner-application-id")),
+                    }),
+                    device: Some(Identity{
+                        display_name: Some(String::from("shared-owner-device-display-name")),
+                        id: Some(String::from("shared-owner-device-id")),
+                    }),
+                    group: Some(Identity{
+                        display_name: Some(String::from("shared-owner-group-display-name")),
+                        id: Some(String::from("shared-owner-group-id")),
+                    }),
+                    user: Some(Identity{
+                        display_name: Some(String::from("shared-owner-user-display-name")),
+                        id: Some(String::from("shared-owner-user-id")),
+                    }),
+                }),
+                scope: Some(String::from("shared-scope")),
+                shared_by: Some(IdentitySet{
+                    application: Some(Identity{
+                        display_name: Some(String::from("shared-by-application-display-name")),
+                        id: Some(String::from("shared-by-application-id")),
+                    }),
+                    device: Some(Identity{
+                        display_name: Some(String::from("shared-by-device-display-name")),
+                        id: Some(String::from("shared-by-device-id")),
+                    }),
+                    group: Some(Identity{
+                        display_name: Some(String::from("shared-by-group-display-name")),
+                        id: Some(String::from("shared-by-group-id")),
+                    }),
+                    user: Some(Identity{
+                        display_name: Some(String::from("shared-by-user-display-name")),
+                        id: Some(String::from("shared-by-user-id")),
+                    }),
+                }),
+                shared_date_time: Some(String::from("shared-shared-date-time")),
+            }),
+            size: 21,
+            special_folder: Some(SpecialFolder { name: String::from("special-folder-name") }),
+            video: Some(Video{
+                audio_bits_per_sample: 22,
+                audio_channels: 23,
+                audio_format: String::from("video-audio-format"),
+                audio_samples_per_second: 24,
+                bitrate: 25,
+                duration: 26,
+                four_cc: Some(String::from("video-four-cc")),
+                frame_rate: 27.0,
+                height: 28,
+                width: 29,
+            }),
+            web_dav_url: Some(String::from("web-dav-url")),
+        }    
+    }
+    
+    // Testing `OneDriver.process_error_response_message`
+    #[test]
+    fn error_response_message_processed_successfully() {
+        // Arrange
+        let http_client = FakeHttper{
+            args_received: RefCell::new(FakeHttperArgsReceived::new()),
+            get_result: Err(HttpError(String::from("This shouldn't be called"))),
+            post_result: Err(HttpError(String::from("This shouldn't be called"))),
+        };
+        let client = OneDriveClient {
+            access_token: String::from("my-access-token"),
+            http_handler: Box::new(http_client),
+            drive_id: None,
+            group_id: None,
+            site_id: None,
+        };
+
+        // Act
+        let one_drive_error = client.process_error_response_message(r#"
+        {
+            "error": {
+                "code": "notAllowed",
+                "message": "random message",
+                "innererror": "random inner error"
+            }
+        }
+        "#);
+
+        // Assert
+        assert_eq!(one_drive_error, OneDriveError(String::from(r#"Received the following error message: ErrorResponse {
+    error: OneDriveApiErrorResponse {
+        code: "notAllowed",
+        message: "random message",
+        inner_error: "random inner error",
+    },
+}"#)));
+    }
+
+    #[test]
+    fn error_response_message_processed_failed() {
+        // Arrange
+        let http_client = FakeHttper{
+            args_received: RefCell::new(FakeHttperArgsReceived::new()),
+            get_result: Err(HttpError(String::from("This shouldn't be called"))),
+            post_result: Err(HttpError(String::from("This shouldn't be called"))),
+        };
+        let client = OneDriveClient {
+            access_token: String::from("my-access-token"),
+            http_handler: Box::new(http_client),
+            drive_id: None,
+            group_id: None,
+            site_id: None,
+        };
+
+        // Act
+        let one_drive_error = client.process_error_response_message("");
+
+        // Assert
+        assert_eq!(one_drive_error, OneDriveError(String::from("Unable to decode message into struct - EOF while parsing a value at line 1 column 0")));
+    }
+
+    #[test]
+    fn get_drive_item_success() {
+        // Arrange
+        let json_body = match serde_json::to_string(&get_fully_populated_driveitem()) {
+            Err(err) => panic!("Unable to convert DriveItem to JSON format - {:?}", err),
+            Ok(res) => res,
+        };
+        let http_client = FakeHttper{
+            args_received: RefCell::new(FakeHttperArgsReceived::new()),
+            get_result: Ok(HttpResponse {
+                status: String::from("ok"), 
+                status_code: 200,
+                body: json_body.into(),
+            }),
+            post_result: Err(HttpError(String::from("This shouldn't be called"))),
+        };
+        let client = OneDriveClient {
+            access_token: String::from("my-access-token"),
+            http_handler: Box::new(http_client),
+            drive_id: None,
+            group_id: None,
+            site_id: None,
+        };
+        let expected_res: Result<DriveItem, OneDriveError> = Ok(get_fully_populated_driveitem());
+
+        // Act
+        let res = client.get_drive_item(
+            String::from("path/to/driveitem.png")
+        );
+
+        // let urls_received = client.http_handler;
+        
+        // Assert
+        assert_eq!(
+            format!("{:#?}", res),
+            format!("{:#?}", expected_res),
+        );
+        // assert_eq!(
+        //     vec![],
+        //     vec![format!("{}me/drive/root:/{}", API_BASE_URL, "path/to/driveitem.png")]
+        // );
     }
 }
