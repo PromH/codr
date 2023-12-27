@@ -5,6 +5,7 @@ use onedrive::{
 };
 use reqwest::blocking;
 use serde_derive::{Deserialize, Serialize};
+use std::borrow::Borrow;
 use std::env;
 use std::str::FromStr;
 use std::time::SystemTime;
@@ -182,7 +183,7 @@ fn main() {
     };
     let client = OneDriveClient {
         access_token,
-        http_handler: Box::new(http_client),
+        http_handler: Box::new(http_client.borrow()),
         drive_id: None,
         group_id: None,
         site_id: None,

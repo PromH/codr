@@ -923,7 +923,7 @@ impl Httper for HttpClient {
 
 /// Struct that provides a client that is able to perform OneDrive related operations
 /// by using the path of the DriveItem
-pub struct OneDriveClient {
+pub struct OneDriveClient<'a> {
     /// (**UNUSED**) The ID of the drive resource representing the user's OneDrive
     pub drive_id: Option<String>,
     /// (**UNUSED**) The ID of the SharePoint site
@@ -933,10 +933,10 @@ pub struct OneDriveClient {
     /// The access token that is required to make HTTP requests to the OneDrive API
     pub access_token: String,
     /// The HTTP handler
-    pub http_handler: Box<dyn Httper>,
+    pub http_handler: Box<&'a dyn Httper>,
 }
 
-impl OneDriver for OneDriveClient {
+impl OneDriver for OneDriveClient<'_> {
     type ArgType = String;
 
     /// Processes error response message
@@ -1175,7 +1175,7 @@ impl OneDriver for OneDriveClient {
 
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
+    use std::{cell::RefCell, borrow::Borrow};
 
     use crate::{HttpResponse, HttpError, Httper, OneDriveClient, OneDriver, OneDriveError, DriveItem, IdentitySet, Identity, ItemReference, SharePointIds, Audio, Deleted, File, Hashes, FileSystemInfo, Folder, FolderView, Image, GeoCoordinates, Malware, Package, Photo, PublicationFacet, RemoteItem, Shared, SpecialFolder, Root, SearchResult, Video, API_BASE_URL};
 
@@ -1601,7 +1601,7 @@ mod tests {
         };
         let client = OneDriveClient {
             access_token: String::from("my-access-token"),
-            http_handler: Box::new(http_client),
+            http_handler: Box::new(http_client.borrow()),
             drive_id: None,
             group_id: None,
             site_id: None,
@@ -1638,7 +1638,7 @@ mod tests {
         };
         let client = OneDriveClient {
             access_token: String::from("my-access-token"),
-            http_handler: Box::new(http_client),
+            http_handler: Box::new(http_client.borrow()),
             drive_id: None,
             group_id: None,
             site_id: None,
@@ -1669,7 +1669,7 @@ mod tests {
         };
         let client = OneDriveClient {
             access_token: String::from("my-access-token"),
-            http_handler: Box::new(http_client),
+            http_handler: Box::new(http_client.borrow()),
             drive_id: None,
             group_id: None,
             site_id: None,
@@ -1682,6 +1682,17 @@ mod tests {
         );
 
         // let urls_received = client.http_handler;
+
+        let args_received = http_client.get_copy_of_args_received();
+        for headers in args_received.all_headers_received.iter() {
+            for header in headers.iter() {
+                let (key, val) = header.clone();
+                println!("{:?}:{:?}", key, val);
+            }
+        }
+        for bodies in args_received.bodies_received.iter() {
+            println!("{:?}", bodies);
+        }
         
         // Assert
         assert_eq!(

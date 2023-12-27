@@ -20,3 +20,20 @@ cargo run -p codr -- -c config.yaml create sharing-links path/to/folder/file emb
 ## Notes
 > [!WARNING]
 > This is my first Rust project so use with caution...
+
+### Potential issues that might arise
+
+#### Firewall rules
+If you're unable to access https://login.microsoftonline.com/organizations/v2.0/.well-known/openid-configuration
+
+Then there might be firewall rules that is blocking access.
+
+You can verify with the following command:
+
+```sh
+python3 -c "import requests; print(requests.get('https://login.microsoftonline.com/').status_code)"
+```
+
+See the following thread for ideas on resolving: https://learn.microsoft.com/en-us/answers/questions/408919/connection-reset-error-trying-to-request-azure-acc
+
+In my case, I needed to turn back my VPN on.
